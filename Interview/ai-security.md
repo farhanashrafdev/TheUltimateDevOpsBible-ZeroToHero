@@ -1,45 +1,244 @@
-# AI Security Interview Questions
+# AI Security Interview Questions: Complete Guide
 
-## 🎯 AI Security Fundamentals
+## 🎯 Introduction
 
-**Q: What are AI security threats?**
-A: Prompt injection, model poisoning, data leakage, adversarial attacks, privacy violations, model theft.
+This comprehensive guide covers AI security interview questions covering LLM security, model security, and AI threat defense.
 
-**Q: Explain prompt injection**
-A: Attack where malicious input manipulates LLM behavior, bypassing safety filters or extracting information.
+## 🔒 AI Security Fundamentals
 
-**Q: How do you defend against prompt injection?**
-A: Input sanitization, system prompt hardening, output validation, guardrails, monitoring.
+### What are AI Security Threats?
 
-## 🔒 Security Practices
+**Answer**:
 
-**Q: Explain model poisoning**
-A: Attack compromising model during training or through malicious updates, inserting backdoors or manipulating behavior.
+**LLM Threats**:
+1. **Prompt Injection**: Manipulating LLMs through prompts
+2. **Jailbreaking**: Bypassing safety filters
+3. **Data Extraction**: Extracting training data
+4. **System Prompt Leakage**: Revealing system instructions
 
-**Q: How do you secure ML pipelines?**
-A: Secure data access, isolate training, sign models, monitor pipelines, implement access controls, audit logging.
+**Model Threats**:
+1. **Model Poisoning**: Compromising models during training
+2. **Adversarial Attacks**: Fooling models with crafted inputs
+3. **Model Theft**: Unauthorized model access
+4. **Backdoor Insertion**: Hidden malicious behavior
 
-**Q: What are guardrails?**
-A: Safety mechanisms enforcing security, compliance, and behavior in AI systems through input/output validation.
+**Pipeline Threats**:
+1. **Data Poisoning**: Corrupting training data
+2. **Supply Chain Attacks**: Compromised dependencies
+3. **Unauthorized Access**: Access to training data/models
 
-## 📝 Scenario Questions
+### Explain Prompt Injection
 
-**Q: Design secure LLM application**
-A: Input validation, prompt injection defense, output filtering, guardrails, monitoring, rate limiting, access controls.
+**Answer**: Attack where malicious input manipulates LLM behavior:
 
-**Q: How do you monitor AI models?**
-A: Track predictions, detect drift, monitor performance, detect anomalies, track security events, compliance monitoring.
+**Types**:
+1. **Direct Injection**: "Ignore previous instructions..."
+2. **Indirect Injection**: "Summarize this: [malicious content]"
 
-## ✅ Key Areas
-
-- LLM security
-- Model security
-- Pipeline security
-- Threat detection
+**Defense**:
+- Input sanitization
+- System prompt hardening
+- Output validation
 - Guardrails
-- Monitoring
+
+**Example**:
+```python
+def detect_injection(user_input):
+    patterns = [
+        r'ignore\s+previous\s+instructions',
+        r'system\s*:',
+        r'\[INST\]'
+    ]
+    for pattern in patterns:
+        if re.search(pattern, user_input, re.IGNORECASE):
+            return True
+    return False
+```
+
+### How do you defend against Prompt Injection?
+
+**Answer**:
+
+**Multi-Layer Defense**:
+1. **Input Validation**: Sanitize inputs, detect patterns
+2. **System Prompt Hardening**: Clear boundaries, explicit instructions
+3. **Output Filtering**: PII detection, toxicity filtering
+4. **Guardrails**: Pre/post processing validation
+5. **Monitoring**: Track injection attempts
+
+**Example**:
+```python
+class PromptInjectionDefense:
+    def __init__(self):
+        self.injection_patterns = [
+            r'ignore\s+previous\s+instructions',
+            r'system\s*:',
+        ]
+    
+    def detect(self, user_input):
+        for pattern in self.injection_patterns:
+            if re.search(pattern, user_input, re.IGNORECASE):
+                return True
+        return False
+    
+    def sanitize(self, user_input):
+        sanitized = user_input
+        for pattern in self.injection_patterns:
+            sanitized = re.sub(pattern, '', sanitized, flags=re.IGNORECASE)
+        return sanitized.strip()
+```
+
+## 🛡️ Model Security
+
+### Explain Model Poisoning
+
+**Answer**: Attack compromising model during training or updates:
+
+**Types**:
+1. **Data Poisoning**: Inject malicious training data
+2. **Model Poisoning**: Compromised model updates
+3. **Backdoor Insertion**: Hidden triggers
+
+**Defense**:
+- Training data validation
+- Model verification
+- Model signing
+- Behavior monitoring
+
+**Detection**:
+```python
+def detect_poisoning(model, test_data):
+    predictions = model.predict(test_data)
+    # Check for unexpected patterns
+    if detect_anomaly(predictions):
+        raise SecurityAlert("Potential poisoning detected")
+```
+
+### How do you secure ML Pipelines?
+
+**Answer**:
+
+**Security Measures**:
+1. **Data Access**: Secure data storage, access controls
+2. **Training Isolation**: Isolated training environments
+3. **Model Signing**: Cryptographic model verification
+4. **Pipeline Monitoring**: Track pipeline execution
+5. **Access Controls**: RBAC, audit logging
+
+**Example**:
+```yaml
+# Secure ML pipeline
+stages:
+  - data_validation
+  - training (isolated)
+  - model_verification
+  - model_signing
+  - deployment
+```
+
+### What are Guardrails?
+
+**Answer**: Safety mechanisms enforcing security and compliance:
+
+**Types**:
+1. **Input Guardrails**: Validate inputs
+2. **Output Guardrails**: Filter outputs
+3. **Behavior Guardrails**: Monitor behavior
+
+**Implementation**:
+```python
+from guardrails import Guard
+
+guard = Guard().use(
+    validators=[
+        "no_pii",
+        "toxicity",
+        "prompt_injection",
+        "refusal"
+    ]
+)
+
+response = guard.validate(user_input, llm_output)
+```
+
+## 🎯 Scenario Questions
+
+### Design a Secure LLM Application
+
+**Answer**:
+
+1. **Input Security**:
+   - Input validation
+   - Prompt injection detection
+   - Rate limiting
+   - Length limits
+
+2. **Processing Security**:
+   - System prompt hardening
+   - Guardrails
+   - Monitoring
+
+3. **Output Security**:
+   - PII detection/removal
+   - Toxicity filtering
+   - Content moderation
+   - Output validation
+
+4. **Infrastructure Security**:
+   - Network policies
+   - Access controls
+   - Encryption
+   - Audit logging
+
+**Example Architecture**:
+```
+User Input → Input Validation → Guardrails → LLM → Output Filtering → Response
+```
+
+### How do you monitor AI Models?
+
+**Answer**:
+
+**Monitoring Areas**:
+1. **Performance**: Accuracy, latency, throughput
+2. **Security**: Injection attempts, anomalies
+3. **Drift**: Model drift, data drift
+4. **Compliance**: PII detection, policy violations
+
+**Metrics**:
+- Prediction distribution
+- Error rates
+- Latency percentiles
+- Security events
+
+**Example**:
+```python
+def monitor_model(inputs, outputs):
+    # Detect anomalies
+    if detect_anomaly(outputs):
+        alert_security_team()
+    
+    # Track metrics
+    log_metrics(inputs, outputs)
+    
+    # Detect drift
+    if detect_drift(outputs):
+        trigger_retraining()
+```
+
+## ✅ Key Areas to Master
+
+- [ ] LLM security threats
+- [ ] Prompt injection defense
+- [ ] Model security
+- [ ] Pipeline security
+- [ ] Guardrails
+- [ ] Model monitoring
+- [ ] Threat detection
+- [ ] Compliance
+- [ ] Best practices
+- [ ] Real-world scenarios
 
 ---
 
-**Next**: Review AIOps interview questions.
-
+**Remember**: AI security interviews test understanding of unique AI threats and defenses. Be prepared to discuss prompt injection, model poisoning, guardrails, and monitoring. Show understanding of both AI and security.
