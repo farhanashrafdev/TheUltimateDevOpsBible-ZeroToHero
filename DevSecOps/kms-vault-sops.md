@@ -1,74 +1,105 @@
-# KMS, Vault, SOPS
+# KMS, Vault, SOPS: Secrets Management Solutions
 
-## 🔐 Key Management Services (KMS)
+## 🎯 Introduction
 
-### AWS KMS
-- Managed encryption keys
-- Integration with AWS services
-- Key rotation
-- Audit logging
+Three popular secrets management solutions compared.
 
-### Usage
-```python
-import boto3
-kms = boto3.client('kms')
-response = kms.encrypt(
-    KeyId='alias/my-key',
-    Plaintext='sensitive-data'
-)
+## 🔐 Solutions
+
+### 1. AWS KMS (Key Management Service)
+
+**Use Case**: AWS-native encryption
+
+```bash
+# Encrypt
+aws kms encrypt \
+  --key-id alias/my-key \
+  --plaintext "secret" \
+  --output text \
+  --query CiphertextBlob
+
+# Decrypt
+aws kms decrypt \
+  --ciphertext-blob fileb://encrypted.txt \
+  --output text \
+  --query Plaintext | base64 --decode
 ```
 
-## 🏦 HashiCorp Vault
+### 2. HashiCorp Vault
 
-### Features
-- Secrets management
-- Dynamic secrets
-- Encryption as a service
-- Access policies
+**Use Case**: Centralized secrets management
 
-### Basic Usage
 ```bash
-# Authenticate
-vault auth -method=userpass username=user
+# Start Vault
+vault server -dev
 
-# Read secret
-vault kv get secret/app
+# Store secret
+vault kv put secret/myapp password=supersecret
 
-# Write secret
-vault kv put secret/app api_key=value
+# Retrieve secret
+vault kv get secret/myapp
+
+# Dynamic secrets (AWS)
+vault read aws/creds/my-role
 ```
 
-## 🔒 SOPS (Secrets OPerationS)
+**Kubernetes Integration**:
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "myapp"
+    vault.hashicorp.com/agent-inject-secret-db: "database/creds/myapp"
+```
 
-### Encrypted File Management
+### 3. SOPS (Secrets OPerationS)
+
+**Use Case**: Encrypted files in Git
+
 ```bash
+# Install
+brew install sops
+
 # Encrypt file
-sops -e -i secrets.yaml
+sops -e secrets.yaml > secrets.enc.yaml
+
+# Decrypt file
+sops -d secrets.enc.yaml
 
 # Edit encrypted file
-sops secrets.yaml
-
-# Decrypt for use
-sops -d secrets.yaml
+sops secrets.enc.yaml
 ```
 
-### Integration
+**With AWS KMS**:
 ```yaml
 # .sops.yaml
 creation_rules:
-  - path_regex: .*\.yaml$
-    kms: 'arn:aws:kms:...'
+  - kms: 'arn:aws:kms:us-east-1:123456789:key/abc-123'
 ```
-
-## ✅ Best Practices
-
-- Use appropriate tool
-- Rotate keys
-- Audit access
-- Limit permissions
-- Document procedures
 
 ---
 
-**Next**: Learn container security.
+## 📊 Comparison
 
+| Feature | AWS KMS | Vault | SOPS |
+|:---|:---|:---|:---|
+| **Complexity** | Low | High | Low |
+| **Cost** | Pay per use | Self-hosted | Free |
+| **Dynamic Secrets** | No | Yes | No |
+| **Audit Log** | CloudTrail | Built-in | No |
+| **Best For** | AWS-only | Enterprise | GitOps |
+
+---
+
+## 🎯 Recommendations
+
+- **AWS-only**: Use AWS KMS
+- **Multi-cloud/Enterprise**: Use Vault
+- **GitOps**: Use SOPS
+
+---
+
+**Next**: Complete [DevSecOps Overview](./overview.md).

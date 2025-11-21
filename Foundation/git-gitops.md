@@ -1,542 +1,480 @@
-# Git & GitOps Fundamentals
+# Git & GitOps: Version Control to Infrastructure Automation
+
+> **"Git is the undo button for your career."**
 
 ## 🎯 Introduction
 
-Git is the foundation of modern software development and DevOps. GitOps extends Git principles to infrastructure and operations. This guide covers Git fundamentals and GitOps practices.
+Git is more than just `commit` and `push`. It's the foundation of modern DevOps. **GitOps** takes this further: your entire infrastructure is defined in Git, and automated systems sync Git to reality.
 
-## 📚 Git Fundamentals
+This guide covers **practical Git workflows and GitOps patterns for production systems**.
 
-### Basic Concepts
+### What You'll Learn
+- Git workflows for teams
+- Advanced Git techniques (reflog, worktree, cherry-pick)
+- GitOps principles and architecture
+- Argo CD vs Flux
+- Secrets management in GitOps
 
-**Repository**: A directory containing your project and its version history
+### What This Is NOT
+- Not a Git basics tutorial (`git init`, `git add`)
+- Not every Git command
+- Not Git internals (plumbing commands)
 
-**Commit**: A snapshot of your project at a point in time
+---
 
-**Branch**: A parallel version of your code
+## 🌿 Git Workflows for Teams
 
-**Remote**: A version of your repository hosted elsewhere (GitHub, GitLab)
+### 1. Trunk-Based Development (Recommended for DevOps)
 
-### Installation
+**Philosophy**: Everyone pushes to `main` (or short-lived feature branches < 1 day).
 
-```bash
-# Ubuntu/Debian
-sudo apt install git
-
-# RHEL/CentOS
-sudo yum install git
-
-# macOS
-brew install git
-
-# Verify
-git --version
+```
+main ─────●─────●─────●─────●─────●
+           \   /       \   /
+            ●─●         ●─●
+         (feature)   (feature)
 ```
 
-### Initial Configuration
+**Benefits**:
+- Fast feedback (CI runs on every commit)
+- No merge hell
+- Forces small, incremental changes
 
-```bash
-# Set user name
-git config --global user.name "Your Name"
+**How to do it**:
+- Feature flags for incomplete features
+- Automated testing catches issues early
+- Deploy `main` frequently
 
-# Set email
-git config --global user.email "your.email@example.com"
+**Real-world example (Google)**:
+- 25,000+ engineers commit to one monorepo
+- Trunk-based development
+- Automated testing at massive scale
 
-# Set default branch name
-git config --global init.defaultBranch main
+### 2. GitFlow (Legacy/Enterprise)
 
-# Set editor
-git config --global core.editor "nano"
+**Philosophy**: Complex branching model with `main`, `develop`, `feature/*`, `release/*`, `hotfix/*`.
 
-# View configuration
-git config --list
+```
+main ─────●───────────●───────────●
+           \           \           \
+develop ────●─────●─────●─────●─────●
+             \   /       \   /
+              ●─●         ●─●
+           (feature)   (feature)
 ```
 
-## 🔧 Basic Git Commands
+**When to use**: Boxed software with scheduled releases
 
-### Repository Setup
+**When NOT to use**: Continuous delivery (it's too slow)
+
+---
+
+## 🔧 Advanced Git Techniques
+
+### 1. The Lifesaver: `git reflog`
+
+**Deleted a branch? Reset to the wrong commit?** `reflog` saves you.
 
 ```bash
-# Initialize repository
-git init
+# View history of HEAD movements
+git reflog
 
-# Clone repository
-git clone https://github.com/user/repo.git
-git clone https://github.com/user/repo.git my-folder
+# Output:
+# abc1234 HEAD@{0}: commit: Add feature
+# def5678 HEAD@{1}: reset: moving to HEAD~1
+# ghi9012 HEAD@{2}: commit: Oops, deleted this
 
-# Check status
-git status
-
-# View changes
-git diff
-git diff --staged
+# Recover lost commit
+git reset --hard HEAD@{2}
 ```
 
-### Making Changes
-
+**Real-world scenario**:
 ```bash
-# Add files
-git add file.txt              # Add specific file
-git add .                     # Add all changes
-git add *.txt                 # Add all .txt files
-git add -A                    # Add all (including deletions)
+# Accidentally deleted branch
+git branch -D feature-branch
 
-# Commit changes
-git commit -m "Add feature X"
-git commit -am "Quick commit" # Add and commit in one step
-
-# View commit history
-git log
-git log --oneline
-git log --graph --oneline --all
-git log -p                    # With diffs
+# Recover it
+git reflog | grep feature-branch
+git checkout -b feature-branch abc1234
 ```
 
-### Branching
+### 2. Parallel Work: `git worktree`
+
+Need to fix a bug on `main` while working on `feature-x`? Don't stash. Use worktrees.
 
 ```bash
-# List branches
-git branch
-git branch -a                 # All branches (including remote)
+# Create a new folder linked to 'main' branch
+git worktree add ../hotfix-folder main
 
-# Create branch
-git branch feature-branch
-git checkout -b feature-branch  # Create and switch
+# Do your work in ../hotfix-folder
+cd ../hotfix-folder
+# ... fix bug, commit, push ...
 
-# Switch branch
-git checkout feature-branch
-git switch feature-branch      # Newer command
+# Remove worktree
+cd ../original-repo
+git worktree remove ../hotfix-folder
+```
 
-# Delete branch
-git branch -d feature-branch  # Safe delete
-git branch -D feature-branch  # Force delete
+### 3. Surgical Precision: `git cherry-pick`
 
-# Merge branch
+Apply a specific commit from one branch to another.
+
+```bash
+# Apply commit abc1234 to current branch
+git cherry-pick abc1234
+
+# Cherry-pick multiple commits
+git cherry-pick abc1234 def5678
+
+# Cherry-pick without committing (review first)
+git cherry-pick -n abc1234
+```
+
+**Real-world use case**:
+```bash
+# Hotfix was committed to 'develop', need it in 'main'
 git checkout main
-git merge feature-branch
+git cherry-pick hotfix-commit-hash
 ```
 
-### Remote Operations
+### 4. Finding Bugs: `git bisect`
+
+Automated binary search to find the commit that introduced a bug.
 
 ```bash
-# View remotes
-git remote -v
-
-# Add remote
-git remote add origin https://github.com/user/repo.git
-
-# Fetch changes
-git fetch origin
-
-# Pull changes
-git pull origin main
-git pull                      # If tracking branch set
-
-# Push changes
-git push origin main
-git push                      # If tracking branch set
-git push -u origin main       # Set upstream
-
-# Remove remote
-git remote remove origin
-```
-
-## 🌿 Branching Strategies
-
-### Git Flow
-
-```
-main (production)
-  │
-  ├── develop (integration)
-  │     │
-  │     ├── feature/user-auth
-  │     ├── feature/payment
-  │     └── release/1.0.0
-  │
-  └── hotfix/critical-bug
-```
-
-**Workflow**:
-- `main`: Production-ready code
-- `develop`: Integration branch
-- `feature/*`: New features
-- `release/*`: Release preparation
-- `hotfix/*`: Critical fixes
-
-### GitHub Flow (Simpler)
-
-```
-main (always deployable)
-  │
-  ├── feature-branch-1
-  ├── feature-branch-2
-  └── feature-branch-3
-```
-
-**Workflow**:
-1. Create feature branch from `main`
-2. Make changes and commit
-3. Open pull request
-4. Review and merge
-5. Deploy `main`
-
-### GitLab Flow
-
-Similar to GitHub Flow but with environment branches:
-- `main` → `staging` → `production`
-
-## 🔄 Advanced Git
-
-### Stashing
-
-```bash
-# Save changes temporarily
-git stash
-git stash save "Work in progress"
-
-# List stashes
-git stash list
-
-# Apply stash
-git stash apply
-git stash pop                # Apply and remove
-
-# Drop stash
-git stash drop stash@{0}
-```
-
-### Undoing Changes
-
-```bash
-# Unstage file
-git reset HEAD file.txt
-
-# Discard changes
-git checkout -- file.txt
-git restore file.txt         # Newer command
-
-# Amend last commit
-git commit --amend -m "New message"
-
-# Reset to previous commit
-git reset --soft HEAD~1      # Keep changes staged
-git reset --mixed HEAD~1     # Keep changes unstaged
-git reset --hard HEAD~1      # Discard all changes (dangerous!)
-```
-
-### Rebasing
-
-```bash
-# Rebase current branch onto main
-git checkout feature-branch
-git rebase main
-
-# Interactive rebase
-git rebase -i HEAD~3         # Last 3 commits
-
-# Abort rebase
-git rebase --abort
-
-# Continue rebase
-git rebase --continue
-```
-
-### Tags
-
-```bash
-# Create tag
-git tag v1.0.0
-git tag -a v1.0.0 -m "Release version 1.0.0"
-
-# List tags
-git tag
-git tag -l "v1.*"
-
-# Push tags
-git push origin v1.0.0
-git push --tags              # Push all tags
-
-# Delete tag
-git tag -d v1.0.0
-git push origin --delete v1.0.0
-```
-
-## 🔍 Git Inspection
-
-```bash
-# View file history
-git log --follow file.txt
-git log -p file.txt          # With changes
-
-# Find when bug was introduced
+# Start bisect
 git bisect start
-git bisect bad                # Current commit is bad
-git bisect good v1.0.0        # This commit was good
-# Git will help you find the bad commit
 
-# Search in commits
-git log --grep="bug fix"
-git log -S "function_name"   # Find when function was added/removed
+# Current version is broken
+git bisect bad
 
-# View commit details
-git show commit-hash
-git show HEAD                 # Latest commit
+# v1.0 was working
+git bisect good v1.0
+
+# Git checks out middle commit
+# Test it, then mark as good or bad
+git bisect good   # or git bisect bad
+
+# Repeat until Git finds the bad commit
+# When done:
+git bisect reset
 ```
 
-## 🤝 Collaboration
+---
 
-### Pull Requests / Merge Requests
+## 🚀 GitOps: Infrastructure as Code V2
 
-**GitHub Pull Request**:
-1. Fork or create branch
-2. Make changes
-3. Push to remote
-4. Open pull request
-5. Review and discuss
-6. Merge when approved
+**GitOps** is Continuous Delivery for Cloud Native applications.
 
-**GitLab Merge Request**: Similar process
+### The 4 Principles of GitOps
 
-### Resolving Conflicts
+1. **Declarative**: The entire system described as code (YAML/HCL)
+2. **Versioned**: The canonical desired state is in Git
+3. **Automated**: Changes are automatically applied
+4. **Self-Healing**: Software agents ensure current state matches desired state
 
-```bash
-# When merge conflict occurs
-git merge feature-branch
+### Push vs. Pull Model
 
-# Edit conflicted files
-# Look for conflict markers:
-<<<<<<< HEAD
-current code
-=======
-incoming code
->>>>>>> feature-branch
+#### ➡️ Push Model (Classic CI/CD)
 
-# After resolving
-git add resolved-file.txt
-git commit
-```
-
-## 🔐 Git Security
-
-### SSH Keys
-
-```bash
-# Generate SSH key
-ssh-keygen -t ed25519 -C "your.email@example.com"
-
-# Add to SSH agent
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-
-# Add public key to GitHub/GitLab
-cat ~/.ssh/id_ed25519.pub
-```
-
-### GPG Signing
-
-```bash
-# Generate GPG key
-gpg --full-generate-key
-
-# Configure Git
-git config --global user.signingkey YOUR_KEY_ID
-git config --global commit.gpgsign true
-
-# Sign commits
-git commit -S -m "Signed commit"
-```
-
-## 🚀 GitOps
-
-### What is GitOps?
-
-GitOps is a methodology where:
-- Git is the **single source of truth**
-- Infrastructure is **declarative**
-- Changes are made via **Git commits**
-- Automated systems **sync** Git to infrastructure
-
-### GitOps Principles
-
-1. **Declarative**: Everything described as code
-2. **Version Controlled**: All config in Git
-3. **Automated**: Automated sync and deployment
-4. **Observable**: Monitor and alert on drift
-
-### GitOps Workflow
+Jenkins/GitLab CI executes `kubectl apply`.
 
 ```
-Developer → Git Commit → CI/CD → Git Repository
-                                    ↓
-                            GitOps Operator
-                                    ↓
-                            Infrastructure
+Developer → Git Push → CI/CD → kubectl apply → Kubernetes
 ```
 
-### GitOps Tools
+**Pros**:
+- Simple to set up
+- Familiar pattern
 
-**Argo CD**:
-- Declarative GitOps for Kubernetes
-- Continuous sync
-- Multi-cluster support
+**Cons**:
+- CI needs admin access to cluster (security risk)
+- No drift detection
+- Manual rollback
 
-**Flux**:
-- GitOps operator for Kubernetes
-- Automated deployments
-- Image automation
+#### ⬅️ Pull Model (True GitOps)
 
-**Jenkins X**:
-- Cloud-native CI/CD
-- GitOps built-in
+An agent (ArgoCD/Flux) inside the cluster pulls changes from Git.
+
+```
+Developer → Git Push → Git Repo
+                          ↓
+                    GitOps Operator (in cluster)
+                          ↓
+                      Kubernetes
+```
+
+**Pros**:
+- Cluster doesn't need external credentials
+- Detects and fixes drift automatically
+- Git is the source of truth
+
+**Cons**:
+- Requires running an operator
+
+---
+
+## 🛠️ GitOps Tools: Argo CD vs Flux
+
+| Feature | Argo CD | Flux |
+|:---|:---|:---|
+| **UI** | Excellent web UI | CLI-focused (UI is separate) |
+| **Architecture** | Centralized (Hub & Spoke) | Decentralized (Controller per cluster) |
+| **Multi-cluster** | Native support | Requires setup |
+| **Helm Support** | Excellent | Excellent |
+| **Kustomize Support** | Excellent | Excellent |
+| **Best For** | App Developers & Platform Teams | Kubernetes Admins & Infrastructure |
 
 ### Argo CD Example
 
 ```yaml
-# Application manifest
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-app
+  name: guestbook
+  namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/user/repo.git
-    targetRevision: main
-    path: k8s
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
   destination:
     server: https://kubernetes.default.svc
-    namespace: production
+    namespace: guestbook
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
+      prune: true        # Delete resources not in Git
+      selfHeal: true     # Revert manual changes
 ```
 
-### GitOps Best Practices
+**Real-world workflow**:
+1. Developer pushes to Git
+2. Argo CD detects change
+3. Argo CD syncs to Kubernetes
+4. If someone manually edits a deployment, Argo CD reverts it (self-heal)
 
-1. **Separate Repos**: App code vs. infrastructure
-2. **Environment Branches**: `dev`, `staging`, `prod`
-3. **Automated Sync**: Use operators
-4. **Rollback**: Revert Git commit
-5. **Audit Trail**: All changes in Git history
-6. **Pull Requests**: Review infrastructure changes
+### Flux Example
 
-## 📝 Git Hooks
-
-### Pre-commit Hook
-
-```bash
-#!/bin/sh
-# .git/hooks/pre-commit
-
-# Run tests
-npm test
-
-# Lint code
-npm run lint
-
-# If any fail, prevent commit
-if [ $? -ne 0 ]; then
-    echo "Tests or linting failed. Commit aborted."
-    exit 1
-fi
+```yaml
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: my-app
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/myorg/my-app
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: my-app
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./kustomize
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: my-app
 ```
-
-### Post-commit Hook
-
-```bash
-#!/bin/sh
-# .git/hooks/post-commit
-
-# Send notification
-echo "Commit $(git rev-parse HEAD) created"
-```
-
-## 🎯 Common Workflows
-
-### Feature Development
-
-```bash
-# 1. Create feature branch
-git checkout -b feature/new-feature
-
-# 2. Make changes
-git add .
-git commit -m "Add new feature"
-
-# 3. Push and create PR
-git push -u origin feature/new-feature
-
-# 4. After PR merged, cleanup
-git checkout main
-git pull
-git branch -d feature/new-feature
-```
-
-### Hotfix
-
-```bash
-# 1. Create hotfix branch from main
-git checkout -b hotfix/critical-bug main
-
-# 2. Fix bug
-git add .
-git commit -m "Fix critical bug"
-
-# 3. Merge to main and develop
-git checkout main
-git merge hotfix/critical-bug
-git checkout develop
-git merge hotfix/critical-bug
-
-# 4. Tag release
-git tag -a v1.0.1 -m "Hotfix release"
-```
-
-## 🔧 Git Aliases
-
-```bash
-# Useful aliases
-git config --global alias.st status
-git config --global alias.co checkout
-git config --global alias.br branch
-git config --global alias.ci commit
-git config --global alias.unstage 'reset HEAD --'
-git config --global alias.last 'log -1 HEAD'
-git config --global alias.visual '!gitk'
-```
-
-## 📊 Git Statistics
-
-```bash
-# Commits per author
-git shortlog -sn
-
-# Lines changed per author
-git log --pretty=tformat: --numstat | \
-  awk '{ add += $1; subs += $2; loc += $1 - $2 } END \
-  { printf "added lines: %s removed lines: %s total lines: %s\n", add, subs, loc }'
-
-# Files changed
-git diff --stat main..feature-branch
-```
-
-## ✅ Mastery Checklist
-
-- [ ] Initialize and clone repositories
-- [ ] Make commits and view history
-- [ ] Create and merge branches
-- [ ] Work with remotes
-- [ ] Resolve merge conflicts
-- [ ] Use stashing and rebasing
-- [ ] Create and manage tags
-- [ ] Understand GitOps principles
-- [ ] Set up GitOps workflows
-- [ ] Use Git hooks
-- [ ] Collaborate via pull requests
-- [ ] Troubleshoot Git issues
 
 ---
 
-**Remember**: Git is essential for DevOps. Master the fundamentals, understand branching strategies, and learn GitOps for infrastructure automation. Practice daily!
+## 🔐 Secrets in GitOps
 
+**NEVER commit raw secrets to Git.**
+
+### 1. Sealed Secrets (Bitnami)
+
+Encrypt secrets locally, commit encrypted version to Git.
+
+```bash
+# Install kubeseal CLI
+brew install kubeseal
+
+# Create secret
+kubectl create secret generic mysecret --dry-run=client -o yaml \
+  --from-literal=password=supersecret > mysecret.yaml
+
+# Seal it (encrypt)
+kubeseal -f mysecret.yaml -w mysealedsecret.yaml
+
+# Commit mysealedsecret.yaml to Git
+git add mysealedsecret.yaml
+git commit -m "Add sealed secret"
+
+# Controller in cluster decrypts it
+kubectl apply -f mysealedsecret.yaml
+```
+
+**How it works**:
+1. Sealed Secrets controller generates a key pair
+2. You encrypt with public key
+3. Controller decrypts with private key
+
+### 2. External Secrets Operator (ESO)
+
+Store secrets in AWS Secrets Manager / HashiCorp Vault, ESO fetches them.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: my-secret
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: my-k8s-secret
+  data:
+    - secretKey: password
+      remoteRef:
+        key: prod/db/password
+```
+
+**Benefits**:
+- Centralized secret management
+- Audit trail
+- Rotation support
+
+### 3. SOPS (Mozilla)
+
+Encrypt YAML files using AWS KMS / PGP.
+
+```bash
+# Install sops
+brew install sops
+
+# Encrypt file
+sops -e secrets.yaml > secrets.enc.yaml
+
+# Commit encrypted file
+git add secrets.enc.yaml
+
+# Decrypt (Flux does this automatically)
+sops -d secrets.enc.yaml
+```
+
+---
+
+## 🎯 GitOps Best Practices
+
+### 1. Separate Repos
+
+**App Code** vs **Infrastructure Code**
+
+```
+myapp-code/          # Application source code
+├── src/
+├── Dockerfile
+└── .github/workflows/
+
+myapp-infra/         # Kubernetes manifests
+├── base/
+├── overlays/
+│   ├── dev/
+│   ├── staging/
+│   └── prod/
+└── argocd/
+```
+
+**Why?**
+- Different teams (app devs vs platform team)
+- Different change frequency
+- Different access controls
+
+### 2. Environment Branches vs Directories
+
+**Option A: Branches**
+```
+main → production
+staging → staging environment
+dev → dev environment
+```
+
+**Option B: Directories (Recommended)**
+```
+overlays/
+├── dev/
+├── staging/
+└── prod/
+```
+
+**Why directories?**
+- Easier to see differences
+- No merge conflicts between environments
+- Works better with Kustomize
+
+### 3. Automated Sync with Manual Approval for Prod
+
+```yaml
+# Dev: Auto-sync
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+
+# Prod: Manual approval
+syncPolicy:
+  automated: false  # Require manual sync
+```
+
+---
+
+## ✅ Mastery Checklist
+
+After mastering this guide, you should be able to:
+
+- [ ] Recover lost commits with `git reflog`
+- [ ] Use `git worktree` for parallel work
+- [ ] Cherry-pick commits between branches
+- [ ] Explain Trunk-Based Development
+- [ ] Understand GitOps principles (Declarative, Versioned, Automated, Self-Healing)
+- [ ] Explain Push vs Pull model
+- [ ] Set up Argo CD or Flux
+- [ ] Manage secrets securely (Sealed Secrets, ESO, SOPS)
+- [ ] Implement a GitOps workflow for production
+
+---
+
+## 📚 Practice Exercises
+
+### Exercise 1: Recover Lost Work
+```bash
+# Create a commit
+echo "test" > file.txt
+git add file.txt
+git commit -m "Test commit"
+
+# Accidentally reset
+git reset --hard HEAD~1
+
+# Recover using reflog
+git reflog
+git reset --hard HEAD@{1}
+```
+
+### Exercise 2: GitOps Setup
+1. Install Argo CD in a local Kubernetes cluster
+2. Create a Git repo with a simple app manifest
+3. Configure Argo CD to sync from your repo
+4. Make a change in Git, watch Argo CD sync it
+
+### Exercise 3: Sealed Secrets
+1. Install Sealed Secrets controller
+2. Create a secret
+3. Seal it
+4. Commit to Git
+5. Verify it's decrypted in the cluster
+
+---
+
+**Next Step**: Now that we can manage code and infrastructure, let's automate everything. Master **[Scripting with Bash & Python](./scripting-bash-python.md)**.
+
+> **Remember**: Git is your safety net. Commit often. Push regularly. GitOps makes Git the source of truth for your entire infrastructure. If it's not in Git, it doesn't exist.

@@ -1,63 +1,110 @@
-# Model Monitoring
+# Model Monitoring: Observability for AI
 
-## 🎯 Monitoring AI/ML Models
+## 🎯 Introduction
 
-Continuous monitoring of models in production for performance, security, and compliance.
+Models degrade over time. Data changes, user behavior shifts. Monitoring is crucial to detect "drift" and ensure performance.
 
-## 📊 Monitoring Areas
+## 📊 What to Monitor
 
-### Performance
-- Prediction accuracy
-- Latency
-- Throughput
-- Resource usage
+### 1. Data Drift
+**Input distribution changes.**
+- Example: Training data was mostly English, now users send Spanish.
+- Metric: KL Divergence, Wasserstein Distance.
 
-### Security
-- Anomaly detection
-- Attack detection
-- Data drift
-- Model drift
+### 2. Concept Drift
+**Relationship between input and output changes.**
+- Example: "Sick" meant "Ill" in training, now means "Cool" (slang).
+- Metric: Accuracy drop, F1 score drop.
 
-### Compliance
-- Fairness metrics
-- Bias detection
-- Privacy compliance
-- Audit logging
+### 3. System Performance
+- Latency (p95, p99)
+- Throughput (RPS)
+- GPU/CPU usage
+- Error rates
 
-## 🛠️ Tools
-
-### Model Monitoring
-- Evidently AI
-- Fiddler
-- Arize
-- WhyLabs
-
-### Metrics
-- Prediction distributions
-- Feature drift
-- Data quality
-- Model performance
-
-## 📝 Implementation
-
-### Monitoring Setup
-```python
-from evidently import Profile
-from evidently.metrics import DataDrift
-
-profile = Profile(sections=[DataDrift()])
-profile.calculate(reference_data, current_data)
-```
-
-## ✅ Best Practices
-
-- Monitor continuously
-- Set alert thresholds
-- Track key metrics
-- Regular reviews
-- Automated alerts
+### 4. Business Metrics
+- Conversion rate
+- User satisfaction
+- Revenue impact
 
 ---
 
-**Next**: Learn inference security.
+## 🛠️ Tools
 
+### 1. Prometheus + Grafana
+
+**Export Metrics**:
+```python
+from prometheus_client import Histogram, Counter
+
+PREDICTION_LATENCY = Histogram('prediction_latency_seconds', 'Time spent predicting')
+DRIFT_SCORE = Gauge('data_drift_score', 'KL Divergence score')
+
+def predict(data):
+    with PREDICTION_LATENCY.time():
+        result = model(data)
+        
+    score = calculate_drift(data)
+    DRIFT_SCORE.set(score)
+    
+    return result
+```
+
+### 2. Evidently AI
+
+**Drift Detection**:
+```python
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+report = Report(metrics=[DataDriftPreset()])
+report.run(reference_data=train_df, current_data=prod_df)
+report.save_html("drift_report.html")
+```
+
+### 3. Arize / WhyLabs
+
+Commercial tools for deep observability.
+
+---
+
+## 🚨 Alerting Strategy
+
+**Don't alert on everything.**
+
+| Metric | Threshold | Alert Level | Action |
+|:---|:---|:---|:---|
+| **Latency** | > 500ms (p99) | Critical | Scale up / Investigate |
+| **Error Rate** | > 1% | Critical | Rollback |
+| **Drift** | > 0.1 (KL) | Warning | Retrain model |
+| **Accuracy** | < 90% | Warning | Analyze failures |
+
+---
+
+## 🔄 Feedback Loops
+
+**Capture Ground Truth**:
+1. User feedback (Thumbs up/down)
+2. Business outcome (Did they click?)
+3. Human review (Sample 1% of requests)
+
+**Retraining Pipeline**:
+```
+[Monitoring] → [Drift Alert] → [Collect New Data] → [Retrain] → [Evaluate] → [Deploy]
+```
+
+---
+
+## ✅ Best Practices
+
+- [ ] Monitor data drift (inputs)
+- [ ] Monitor concept drift (outputs)
+- [ ] Track system metrics (latency, errors)
+- [ ] Capture ground truth whenever possible
+- [ ] Set up automated alerts
+- [ ] Create a retraining strategy
+- [ ] Visualize metrics in dashboards
+
+---
+
+**Next**: Explore [AIOps](../AIOps/overview.md) for applying AI to operations.

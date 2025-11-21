@@ -1,168 +1,114 @@
-# Scripting: Bash & Python for DevOps
+# Scripting: Bash & Python for DevOps Automation
+
+> **"If you have to do it twice, automate it."**
 
 ## 🎯 Introduction
 
-Automation is the heart of DevOps. Bash and Python are essential scripting languages for automating tasks, managing infrastructure, and building tools. This guide covers practical scripting for DevOps engineers.
+DevOps engineers are **Automation Engineers**. You glue together disparate systems using code. This guide focuses on **practical automation patterns** you'll use every day.
 
-## 🐚 Bash Scripting
+### What You'll Learn
+- Bash for system automation
+- Python for complex logic and APIs
+- When to use each language
+- Automation patterns and best practices
+- Real-world examples
 
-### Basic Script Structure
+### What This Is NOT
+- Not a complete language tutorial
+- Not every language feature
+- Not algorithm design
 
-```bash
-#!/bin/bash
-# Script description
+---
 
-# Set options
-set -e          # Exit on error
-set -u          # Exit on undefined variable
-set -o pipefail # Exit on pipe failure
+## 🐚 Bash for System Automation
 
-# Variables
-NAME="DevOps"
-VERSION=1.0
+### When to Use Bash
+- Quick system tasks
+- Piping commands together
+- Shell environment manipulation
+- Simple automation scripts
 
-# Main script
-echo "Hello, $NAME!"
-```
+### Essential Bash Patterns
 
-### Variables
-
-```bash
-# Assignment
-NAME="John"
-AGE=30
-PATH="/usr/bin"  # Careful: PATH is special
-
-# Usage
-echo $NAME
-echo ${NAME}     # Preferred for clarity
-
-# Default values
-${VAR:-default}  # Use default if unset
-${VAR:=default}  # Set default if unset
-${VAR:+value}    # Use value if set
-${VAR:?error}    # Error if unset
-```
-
-### Input/Output
-
-```bash
-# Read input
-read -p "Enter name: " name
-read -s -p "Password: " pass  # Silent input
-
-# Output
-echo "Hello, $name"
-printf "Name: %s, Age: %d\n" "$name" 30
-
-# Redirect
-command > file      # Overwrite
-command >> file     # Append
-command 2> file     # Stderr
-command &> file     # Both
-command < file      # Input
-```
-
-### Conditionals
-
-```bash
-# If statement
-if [ condition ]; then
-    echo "True"
-elif [ condition2 ]; then
-    echo "Alternative"
-else
-    echo "False"
-fi
-
-# Test conditions
-[ -f file ]         # File exists
-[ -d dir ]          # Directory exists
-[ -r file ]         # Readable
-[ -w file ]         # Writable
-[ -x file ]         # Executable
-[ -z string ]       # Empty string
-[ -n string ]       # Non-empty string
-[ str1 = str2 ]     # Strings equal
-[ str1 != str2 ]    # Strings not equal
-[ num1 -eq num2 ]   # Numbers equal
-[ num1 -lt num2 ]   # Less than
-[ num1 -gt num2 ]   # Greater than
-```
-
-### Loops
-
-```bash
-# For loop
-for i in {1..10}; do
-    echo $i
-done
-
-for file in *.txt; do
-    echo "Processing $file"
-done
-
-# While loop
-count=0
-while [ $count -lt 10 ]; do
-    echo $count
-    ((count++))
-done
-
-# Until loop
-until [ condition ]; do
-    echo "Waiting..."
-    sleep 1
-done
-```
-
-### Functions
-
-```bash
-# Define function
-function greet() {
-    local name=$1
-    echo "Hello, $name!"
-}
-
-# Call function
-greet "John"
-
-# Return value
-function add() {
-    local a=$1
-    local b=$2
-    echo $((a + b))
-}
-
-result=$(add 5 3)
-echo "Result: $result"
-```
-
-### Arrays
-
-```bash
-# Declare array
-arr=("apple" "banana" "cherry")
-
-# Access elements
-echo ${arr[0]}      # First element
-echo ${arr[@]}      # All elements
-echo ${#arr[@]}     # Length
-
-# Iterate
-for item in "${arr[@]}"; do
-    echo $item
-done
-```
-
-### Error Handling
+#### 1. Robust Script Template
 
 ```bash
 #!/bin/bash
-set -e              # Exit on error
-set -u              # Exit on undefined variable
-set -o pipefail     # Exit on pipe failure
+set -euo pipefail  # Exit on error, undefined var, pipe failure
+
+# Constants
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LOG_FILE="${SCRIPT_DIR}/script.log"
+
+# Functions
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+}
+
+error_exit() {
+    log "ERROR: $1"
+    exit 1
+}
+
+# Main
+main() {
+    log "Starting script"
+    
+    # Your code here
+    
+    log "Script completed"
+}
+
+main "$@"
+```
+
+#### 2. JSON Parsing with `jq`
+
+`jq` is the `sed` for JSON data. **Essential for cloud/Kubernetes work.**
+
+```bash
+# Extract a value
+aws s3api list-buckets | jq -r '.Buckets[].Name'
+
+# Filter and select
+kubectl get pods -o json | jq '.items[] | select(.status.phase=="Running") | .metadata.name'
+
+# Create JSON
+jq -n --arg name "DevOps" '{"hello": $name}'
+
+# Pretty print
+cat response.json | jq '.'
+
+# Extract nested value
+cat config.json | jq '.database.host'
+```
+
+**Real-world example: Get all running pod names**
+```bash
+kubectl get pods -o json | \
+  jq -r '.items[] | select(.status.phase=="Running") | .metadata.name'
+```
+
+#### 3. Parallel Execution with `xargs`
+
+Stop writing `for` loops. Use `xargs` for parallel execution.
+
+```bash
+# Delete all pods in parallel (max 10 at a time)
+kubectl get pods -o name | xargs -P 10 -I {} kubectl delete {}
+
+# Find and delete large files
+find /var/log -name "*.log" -size +100M | xargs rm
+
+# Process files in parallel
+ls *.txt | xargs -P 4 -I {} sh -c 'process_file {}'
+```
+
+#### 4. Error Handling
+
+```bash
+#!/bin/bash
+set -euo pipefail
 
 # Trap errors
 trap 'echo "Error at line $LINENO"' ERR
@@ -174,197 +120,190 @@ else
     echo "Failed"
     exit 1
 fi
-```
 
-### Practical Examples
-
-#### System Backup Script
-
-```bash
-#!/bin/bash
-set -e
-
-BACKUP_DIR="/backup"
-SOURCE_DIR="/var/www"
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/backup_$DATE.tar.gz"
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
-
-# Create backup
-tar -czf "$BACKUP_FILE" "$SOURCE_DIR"
-
-# Remove old backups (keep last 7 days)
-find "$BACKUP_DIR" -name "backup_*.tar.gz" -mtime +7 -delete
-
-echo "Backup created: $BACKUP_FILE"
-```
-
-#### Log Analyzer
-
-```bash
-#!/bin/bash
-
-LOG_FILE="${1:-/var/log/app.log}"
-
-if [ ! -f "$LOG_FILE" ]; then
-    echo "Error: Log file not found"
+# Check if file exists
+if [ ! -f "/path/to/file" ]; then
+    echo "File not found"
     exit 1
 fi
-
-echo "=== Log Analysis ==="
-echo "Total lines: $(wc -l < "$LOG_FILE")"
-echo "Error count: $(grep -i error "$LOG_FILE" | wc -l)"
-echo "Top IPs:"
-grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$LOG_FILE" | \
-    sort | uniq -c | sort -rn | head -10
 ```
 
-#### Health Check Script
+---
 
-```bash
-#!/bin/bash
+## 🐍 Python for Complex Automation
 
-check_service() {
-    local service=$1
-    if systemctl is-active --quiet "$service"; then
-        echo "✓ $service is running"
-        return 0
-    else
-        echo "✗ $service is not running"
-        return 1
-    fi
-}
+### When to Use Python
+- Complex logic
+- API interactions
+- Data processing
+- Cross-platform scripts
+- When you need libraries (boto3, requests, kubernetes)
 
-check_port() {
-    local host=$1
-    local port=$2
-    if nc -zv "$host" "$port" &>/dev/null; then
-        echo "✓ Port $port on $host is open"
-        return 0
-    else
-        echo "✗ Port $port on $host is closed"
-        return 1
-    fi
-}
+### Essential Python Patterns
 
-# Check services
-check_service nginx
-check_service mysql
+#### 1. Modern CLI with `typer`
 
-# Check ports
-check_port localhost 80
-check_port localhost 443
-```
-
-## 🐍 Python Scripting
-
-### Basic Script Structure
+Stop using `argparse`. Use `typer` for beautiful, auto-documented CLIs.
 
 ```python
-#!/usr/bin/env python3
-"""
-Script description
-"""
+import typer
 
-import sys
-import os
-from pathlib import Path
+app = typer.Typer()
 
-def main():
-    """Main function"""
-    print("Hello, DevOps!")
+@app.command()
+def deploy(
+    environment: str = typer.Option(..., help="Environment to deploy to"),
+    version: str = typer.Option("latest", help="Version to deploy"),
+    dry_run: bool = typer.Option(False, help="Dry run mode")
+):
+    """Deploy application to specified environment."""
+    if dry_run:
+        typer.echo(f"[DRY RUN] Would deploy {version} to {environment}")
+    else:
+        typer.echo(f"Deploying {version} to {environment}")
+        # Actual deployment logic
 
 if __name__ == "__main__":
-    main()
+    app()
 ```
 
-### Essential Libraries
+**Usage**:
+```bash
+python deploy.py --environment prod --version v1.2.3
+python deploy.py --help  # Auto-generated help
+```
+
+#### 2. AWS Boto3: Handling Pagination
+
+Most AWS APIs return max 50-100 items. **You MUST handle pagination.**
 
 ```python
-# Standard library
-import os
-import sys
-import subprocess
-import json
-import yaml
-import logging
-import argparse
-from pathlib import Path
-from datetime import datetime
+import boto3
 
-# Third-party (install with pip)
-# requests - HTTP requests
-# boto3 - AWS SDK
-# kubernetes - K8s client
-# docker - Docker client
+s3 = boto3.client('s3')
+
+# Wrong (only gets first page)
+response = s3.list_objects_v2(Bucket='my-bucket')
+for obj in response.get('Contents', []):
+    print(obj['Key'])
+
+# Correct (gets all objects)
+paginator = s3.get_paginator('list_objects_v2')
+for page in paginator.paginate(Bucket='my-bucket'):
+    for obj in page.get('Contents', []):
+        print(obj['Key'])
 ```
 
-### File Operations
+**Real-world example: Delete all objects in S3 bucket**
+```python
+import boto3
+
+s3 = boto3.client('s3')
+bucket = 'my-bucket'
+
+paginator = s3.get_paginator('list_objects_v2')
+for page in paginator.paginate(Bucket=bucket):
+    objects = [{'Key': obj['Key']} for obj in page.get('Contents', [])]
+    if objects:
+        s3.delete_objects(Bucket=bucket, Delete={'Objects': objects})
+```
+
+#### 3. Data Validation with `pydantic`
+
+Validate config files or API responses strictly.
 
 ```python
-# Read file
-with open('file.txt', 'r') as f:
-    content = f.read()
-    lines = f.readlines()
+from pydantic import BaseModel, Field
+from typing import List
 
-# Write file
-with open('file.txt', 'w') as f:
-    f.write("Hello, World!")
+class DatabaseConfig(BaseModel):
+    host: str
+    port: int = Field(default=5432, ge=1, le=65535)
+    username: str
+    password: str
 
-# Path operations
-from pathlib import Path
+class Config(BaseModel):
+    environment: str
+    replicas: int = Field(ge=1, le=100)
+    database: DatabaseConfig
 
-path = Path('/var/log/app.log')
-if path.exists():
-    print(f"Size: {path.stat().st_size} bytes")
+# Validates types automatically
+config = Config(
+    environment="prod",
+    replicas=3,
+    database={
+        "host": "db.example.com",
+        "port": 5432,
+        "username": "admin",
+        "password": "secret"
+    }
+)
+
+# Access with autocomplete
+print(config.database.host)
 ```
 
-### System Operations
+#### 4. Kubernetes Client
 
 ```python
-import subprocess
-import os
+from kubernetes import client, config
 
-# Execute command
-result = subprocess.run(['ls', '-la'], capture_output=True, text=True)
-print(result.stdout)
+# Load kubeconfig
+config.load_kube_config()
 
-# Check return code
-if result.returncode == 0:
-    print("Success")
-else:
-    print("Failed")
+v1 = client.CoreV1Api()
 
-# Environment variables
-home = os.environ.get('HOME', '/tmp')
-path = os.environ.get('PATH', '')
+# List pods
+pods = v1.list_pod_for_all_namespaces(watch=False)
+for pod in pods.items:
+    print(f"{pod.metadata.namespace}/{pod.metadata.name}")
 
-# Change directory
-os.chdir('/tmp')
+# Get pod logs
+logs = v1.read_namespaced_pod_log(
+    name="my-pod",
+    namespace="default",
+    tail_lines=100
+)
+print(logs)
 ```
 
-### JSON/YAML Handling
+---
 
-```python
-import json
-import yaml
+## 🔄 Automation Patterns
 
-# JSON
-data = {'name': 'DevOps', 'version': 1.0}
-json_str = json.dumps(data)
-data = json.loads(json_str)
+### 1. Idempotency
 
-# YAML
-with open('config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+Your script should produce the same result whether run once or 100 times.
 
-with open('config.yaml', 'w') as f:
-    yaml.dump(config, f)
+```bash
+# Bad (fails if exists)
+mkdir /tmp/folder
+
+# Good (succeeds if exists)
+mkdir -p /tmp/folder
+
+# Bad (appends every time)
+echo "export PATH=$PATH:/opt/bin" >> ~/.bashrc
+
+# Good (only adds if not present)
+grep -qF 'export PATH=$PATH:/opt/bin' ~/.bashrc || \
+    echo 'export PATH=$PATH:/opt/bin' >> ~/.bashrc
 ```
 
-### Logging
+### 2. Atomic Operations
+
+Don't leave the system in a broken state if the script crashes.
+
+```bash
+# Bad (file is incomplete if script crashes)
+curl https://example.com/data > /etc/myapp/config.json
+
+# Good (atomic move)
+curl https://example.com/data > /tmp/config.json.tmp
+mv /tmp/config.json.tmp /etc/myapp/config.json
+```
+
+### 3. Logging and Observability
 
 ```python
 import logging
@@ -380,149 +319,91 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-logger.info("Information message")
-logger.error("Error message")
+
+def deploy():
+    logger.info("Starting deployment")
+    try:
+        # Deployment logic
+        logger.info("Deployment successful")
+    except Exception as e:
+        logger.error(f"Deployment failed: {e}", exc_info=True)
+        raise
 ```
 
-### Argument Parsing
+---
 
-```python
-import argparse
+## 🎯 Real-World Examples
 
-parser = argparse.ArgumentParser(description='DevOps script')
-parser.add_argument('--host', required=True, help='Host name')
-parser.add_argument('--port', type=int, default=80, help='Port number')
-parser.add_argument('--verbose', action='store_true', help='Verbose output')
+### Example 1: Kubernetes Pod Cleanup Script
 
-args = parser.parse_args()
-print(f"Connecting to {args.host}:{args.port}")
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Delete all Evicted pods
+kubectl get pods --all-namespaces -o json | \
+  jq -r '.items[] | select(.status.reason=="Evicted") | "\(.metadata.namespace) \(.metadata.name)"' | \
+  while read namespace pod; do
+    echo "Deleting $namespace/$pod"
+    kubectl delete pod -n "$namespace" "$pod"
+  done
 ```
 
-### Error Handling
+### Example 2: AWS Resource Tagger
 
 ```python
-try:
-    result = 10 / 0
-except ZeroDivisionError as e:
-    print(f"Error: {e}")
-except Exception as e:
-    print(f"Unexpected error: {e}")
-finally:
-    print("Cleanup")
-```
+import boto3
+from typing import Dict
 
-### Practical Examples
-
-#### Docker Container Manager
-
-```python
-#!/usr/bin/env python3
-import subprocess
-import json
-import sys
-
-def list_containers():
-    """List all containers"""
-    result = subprocess.run(
-        ['docker', 'ps', '-a', '--format', 'json'],
-        capture_output=True,
-        text=True
-    )
-    containers = []
-    for line in result.stdout.strip().split('\n'):
-        if line:
-            containers.append(json.loads(line))
-    return containers
-
-def stop_container(container_id):
-    """Stop a container"""
-    result = subprocess.run(
-        ['docker', 'stop', container_id],
-        capture_output=True
-    )
-    return result.returncode == 0
-
-def main():
-    containers = list_containers()
-    print(f"Found {len(containers)} containers")
-    for container in containers:
-        print(f"{container['ID']}: {container['Names']}")
-
-if __name__ == "__main__":
-    main()
-```
-
-#### Kubernetes Resource Checker
-
-```python
-#!/usr/bin/env python3
-import subprocess
-import json
-
-def get_pods(namespace='default'):
-    """Get pods in namespace"""
-    cmd = ['kubectl', 'get', 'pods', '-n', namespace, '-o', 'json']
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode == 0:
-        return json.loads(result.stdout)
-    return None
-
-def check_pod_status(pods_data):
-    """Check pod statuses"""
-    if not pods_data:
-        return
+def tag_resources(resource_ids: list, tags: Dict[str, str], region: str = 'us-east-1'):
+    """Tag AWS resources."""
+    ec2 = boto3.client('ec2', region_name=region)
     
-    for pod in pods_data.get('items', []):
-        name = pod['metadata']['name']
-        status = pod['status']['phase']
-        print(f"{name}: {status}")
-        
-        if status != 'Running':
-            print(f"  Warning: {name} is not running!")
+    tag_list = [{'Key': k, 'Value': v} for k, v in tags.items()]
+    
+    try:
+        ec2.create_tags(Resources=resource_ids, Tags=tag_list)
+        print(f"Tagged {len(resource_ids)} resources")
+    except Exception as e:
+        print(f"Error tagging resources: {e}")
+        raise
 
-if __name__ == "__main__":
-    pods = get_pods()
-    if pods:
-        check_pod_status(pods)
+# Usage
+tag_resources(
+    resource_ids=['i-1234567890abcdef0'],
+    tags={'Environment': 'prod', 'Team': 'platform'}
+)
 ```
 
-#### Log Parser
+### Example 3: Log Analyzer
 
 ```python
-#!/usr/bin/env python3
 import re
 from collections import Counter
 from pathlib import Path
 
-def parse_log_file(log_path):
-    """Parse log file and extract statistics"""
-    log_path = Path(log_path)
-    if not log_path.exists():
-        print(f"Error: {log_path} not found")
-        return
-    
+def analyze_nginx_logs(log_file: str):
+    """Analyze nginx access logs."""
     ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
     status_pattern = r'\s(\d{3})\s'
     
     ips = []
     status_codes = []
     
-    with open(log_path, 'r') as f:
+    with open(log_file, 'r') as f:
         for line in f:
             # Extract IPs
-            ip_match = re.search(ip_pattern, line)
-            if ip_match:
+            if ip_match := re.search(ip_pattern, line):
                 ips.append(ip_match.group())
             
             # Extract status codes
-            status_match = re.search(status_pattern, line)
-            if status_match:
+            if status_match := re.search(status_pattern, line):
                 status_codes.append(status_match.group(1))
     
-    # Statistics
-    print("=== Log Statistics ===")
+    print("=== Log Analysis ===")
     print(f"Total requests: {len(ips)}")
     print(f"Unique IPs: {len(set(ips))}")
+    
     print("\nTop 10 IPs:")
     for ip, count in Counter(ips).most_common(10):
         print(f"  {ip}: {count}")
@@ -531,159 +412,80 @@ def parse_log_file(log_path):
     for status, count in Counter(status_codes).most_common():
         print(f"  {status}: {count}")
 
-if __name__ == "__main__":
-    import sys
-    log_file = sys.argv[1] if len(sys.argv) > 1 else '/var/log/access.log'
-    parse_log_file(log_file)
+# Usage
+analyze_nginx_logs('/var/log/nginx/access.log')
 ```
-
-#### AWS S3 Backup Script
-
-```python
-#!/usr/bin/env python3
-import boto3
-from pathlib import Path
-from datetime import datetime
-
-def backup_to_s3(local_path, bucket_name, s3_key=None):
-    """Backup local directory to S3"""
-    s3 = boto3.client('s3')
-    local_path = Path(local_path)
-    
-    if not local_path.exists():
-        print(f"Error: {local_path} not found")
-        return False
-    
-    if s3_key is None:
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        s3_key = f"backups/{local_path.name}_{timestamp}.tar.gz"
-    
-    # Create archive
-    import tarfile
-    archive_path = f"/tmp/{local_path.name}.tar.gz"
-    with tarfile.open(archive_path, 'w:gz') as tar:
-        tar.add(local_path, arcname=local_path.name)
-    
-    # Upload to S3
-    try:
-        s3.upload_file(archive_path, bucket_name, s3_key)
-        print(f"Backup uploaded to s3://{bucket_name}/{s3_key}")
-        return True
-    except Exception as e:
-        print(f"Error uploading: {e}")
-        return False
-    finally:
-        Path(archive_path).unlink()  # Cleanup
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: backup_s3.py <local_path> <bucket_name> [s3_key]")
-        sys.exit(1)
-    
-    backup_to_s3(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
-```
-
-## 🔧 Best Practices
-
-### Bash Best Practices
-
-1. **Always use `set -e`**: Exit on error
-2. **Quote variables**: `"$var"` not `$var`
-3. **Use `[[ ]]` instead of `[ ]`**: More features
-4. **Check if files exist**: Before operations
-5. **Use functions**: For reusable code
-6. **Add comments**: Explain complex logic
-7. **Validate input**: Check user input
-8. **Handle errors**: Proper error handling
-
-### Python Best Practices
-
-1. **Use virtual environments**: `python -m venv venv`
-2. **Follow PEP 8**: Python style guide
-3. **Type hints**: For better code clarity
-4. **Docstrings**: Document functions
-5. **Exception handling**: Proper error handling
-6. **Logging**: Use logging, not print
-7. **Testing**: Write tests for scripts
-8. **Dependencies**: Use requirements.txt
-
-## 📝 Script Templates
-
-### Bash Template
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="${SCRIPT_DIR}/script.log"
-
-log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
-}
-
-error_exit() {
-    log "ERROR: $1"
-    exit 1
-}
-
-main() {
-    log "Starting script"
-    # Your code here
-    log "Script completed"
-}
-
-main "$@"
-```
-
-### Python Template
-
-```python
-#!/usr/bin/env python3
-"""Script description"""
-
-import sys
-import logging
-from pathlib import Path
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-def main():
-    """Main function"""
-    try:
-        logger.info("Starting script")
-        # Your code here
-        logger.info("Script completed")
-    except Exception as e:
-        logger.error(f"Error: {e}", exc_info=True)
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
-```
-
-## ✅ Mastery Checklist
-
-- [ ] Write basic Bash scripts
-- [ ] Handle errors in Bash
-- [ ] Use functions and arrays
-- [ ] Write Python scripts
-- [ ] Handle files and JSON/YAML
-- [ ] Use subprocess for commands
-- [ ] Implement logging
-- [ ] Parse command-line arguments
-- [ ] Write reusable functions
-- [ ] Follow best practices
-- [ ] Debug scripts effectively
-- [ ] Automate common tasks
 
 ---
 
-**Remember**: Scripting is about automation and efficiency. Start simple, practice regularly, and build up to complex automation. Both Bash and Python are essential tools in your DevOps toolkit.
+## 🐹 When to Use Go?
 
+Python is great, but Go is the language of Kubernetes, Terraform, and Docker.
+
+**Switch to Go when**:
+1. **Performance**: You need concurrency (Goroutines)
+2. **Distribution**: You want a single binary (no `pip install`)
+3. **Kubernetes**: You're writing a Custom Controller or Operator
+
+**Example Go use cases**:
+- Kubernetes operators
+- CLI tools (kubectl, terraform)
+- High-performance services
+
+---
+
+## ✅ Mastery Checklist
+
+After mastering this guide, you should be able to:
+
+- [ ] Master `jq` for JSON manipulation
+- [ ] Use `set -euo pipefail` in every Bash script
+- [ ] Write parallel scripts with `xargs`
+- [ ] Write Python CLIs with `typer`
+- [ ] Handle AWS/API pagination in Python
+- [ ] Validate data with `pydantic`
+- [ ] Understand idempotency
+- [ ] Know when to use Bash vs Python vs Go
+- [ ] Write production-ready automation scripts
+
+---
+
+## 📚 Practice Exercises
+
+### Exercise 1: Bash + jq
+```bash
+# Get all running pods with their IPs
+kubectl get pods -o json | \
+  jq -r '.items[] | select(.status.phase=="Running") | "\(.metadata.name) \(.status.podIP)"'
+```
+
+### Exercise 2: Python + boto3
+```python
+# List all S3 buckets and their sizes
+import boto3
+
+s3 = boto3.client('s3')
+cloudwatch = boto3.client('cloudwatch')
+
+for bucket in s3.list_buckets()['Buckets']:
+    # Get bucket size from CloudWatch
+    response = cloudwatch.get_metric_statistics(
+        Namespace='AWS/S3',
+        MetricName='BucketSizeBytes',
+        Dimensions=[
+            {'Name': 'BucketName', 'Value': bucket['Name']},
+            {'Name': 'StorageType', 'Value': 'StandardStorage'}
+        ],
+        StartTime=datetime.now() - timedelta(days=1),
+        EndTime=datetime.now(),
+        Period=86400,
+        Statistics=['Average']
+    )
+    print(f"{bucket['Name']}: {response}")
+```
+
+---
+
+**Next Step**: You've completed the Foundation! Now explore the **[DevOps Core](../DevOps/overview.md)** to learn Docker, Kubernetes, CI/CD, and more.
+
+> **Remember**: Automation is about solving problems, not showing off language features. Use the simplest tool that works. Bash for simple tasks, Python for complex logic, Go for performance-critical tools.

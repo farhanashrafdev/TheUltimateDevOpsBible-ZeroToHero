@@ -1,63 +1,102 @@
-# Pipeline Scanning
+# Pipeline Scanning: Integrating Security into CI/CD
 
-## 🎯 Automated Security Scanning
+## 🎯 Introduction
 
-Integrate security scanning into CI/CD pipelines for continuous security validation.
+Integrate security scanning at every stage of the pipeline.
 
-## 🔍 Scan Types
+## 🔍 Scanning Stages
 
-### Code Scanning
-- SAST tools
-- Secret detection
-- Code quality
+### 1. Code Commit
 
-### Dependency Scanning
-- SCA tools
-- License compliance
-- Vulnerability detection
-
-### Infrastructure Scanning
-- IaC security
-- Misconfiguration detection
-- Policy validation
-
-### Container Scanning
-- Image vulnerabilities
-- Base image issues
-- Configuration problems
-
-## 📝 Implementation
-
-### GitHub Actions Example
+**Secret Scanning**:
 ```yaml
-- name: Run SAST
-  uses: github/super-linter@v4
-  env:
-    DEFAULT_BRANCH: main
-
-- name: Dependency Scan
-  uses: snyk/actions/node@master
-  env:
-    SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+- name: Secret scan
+  run: |
+    trufflehog git file://. --only-verified
+    gitleaks detect --source .
 ```
 
-### GitLab CI Example
+### 2. Build
+
+**SAST (Static Application Security Testing)**:
 ```yaml
-sast:
-  stage: test
-  include:
-    - template: Security/SAST.gitlab-ci.yml
+- name: SAST
+  run: |
+    semgrep --config=auto --error
+    sonar-scanner
 ```
 
-## ✅ Best Practices
+**SCA (Software Composition Analysis)**:
+```yaml
+- name: Dependency scan
+  run: |
+    npm audit --audit-level=high
+    snyk test
+```
 
-- Scan early and often
-- Fail on critical issues
-- Automate remediation
-- Track vulnerabilities
-- Regular updates
+### 3. Container Build
+
+**Image Scanning**:
+```yaml
+- name: Build and scan
+  run: |
+    docker build -t myapp:${{ github.sha }} .
+    trivy image --severity HIGH,CRITICAL myapp:${{ github.sha }}
+```
+
+### 4. Pre-Deployment
+
+**IaC Scanning**:
+```yaml
+- name: IaC scan
+  run: |
+    checkov -d kubernetes/
+    tfsec terraform/
+```
 
 ---
 
-**Next**: Learn SAST, SCA, and DAST tools.
+## 🎯 Complete Pipeline
 
+```yaml
+name: Secure Pipeline
+
+on: [push]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Secret scan
+        run: gitleaks detect
+        
+      - name: SAST
+        run: semgrep --config=auto
+        
+      - name: SCA
+        run: snyk test
+        
+      - name: Build
+        run: docker build -t myapp .
+        
+      - name: Container scan
+        run: trivy image myapp
+        
+      - name: IaC scan
+        run: checkov -d k8s/
+```
+
+---
+
+## ✅ Best Practices
+
+- [ ] Scan at every stage
+- [ ] Fail builds on high/critical issues
+- [ ] Generate security reports
+- [ ] Track metrics
+
+---
+
+**Next**: [Secrets Management](./secrets-management.md).

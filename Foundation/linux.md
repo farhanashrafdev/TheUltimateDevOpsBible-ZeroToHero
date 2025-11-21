@@ -1,489 +1,645 @@
-# Linux Fundamentals for DevOps
+# Linux Fundamentals for DevOps: Production Skills
+
+> **"Everything is a file."** - The Unix Philosophy
 
 ## 🎯 Introduction
 
-Linux is the foundation of modern DevOps. Most servers, containers, and cloud infrastructure run on Linux. This guide covers essential Linux skills every DevOps engineer must master.
+Linux is the operating system of the cloud. **95% of servers run Linux**. As a DevOps engineer, you don't just "use" Linux—you must understand how it works, how to troubleshoot it, and how to optimize it for production workloads.
 
-## 📚 Core Concepts
+This guide focuses on **practical Linux skills you'll use every day** in a DevOps role.
 
-### File System Hierarchy
+### What You'll Learn
+- Essential commands for daily work
+- System administration and troubleshooting
+- Performance analysis and optimization
+- Security hardening
+- Automation with shell scripting
+
+### What This Is NOT
+- Not a Linux certification exam prep
+- Not kernel development
+- Not every obscure command flag
+
+---
+
+## 🧠 Linux Architecture: How It Works
+
+### User Space vs. Kernel Space
 
 ```
-/                    Root directory
-├── /bin             Essential binaries
-├── /boot            Boot files
-├── /dev             Device files
-├── /etc             Configuration files
-├── /home            User home directories
-├── /lib             Shared libraries
-├── /opt             Optional software
-├── /proc            Process information
-├── /root            Root user home
-├── /sbin            System binaries
-├── /tmp             Temporary files
-├── /usr             User programs
-└── /var             Variable data (logs, etc.)
+┌─────────────────────────────────────┐
+│        User Space                    │
+│  ┌──────────┐  ┌──────────┐         │
+│  │  nginx   │  │  python  │  Apps   │
+│  └──────────┘  └──────────┘         │
+│         ↕ System Calls ↕             │
+├─────────────────────────────────────┤
+│        Kernel Space                  │
+│  ┌──────────────────────────────┐   │
+│  │   Linux Kernel               │   │
+│  │  - Process Management        │   │
+│  │  - Memory Management         │   │
+│  │  - File System               │   │
+│  │  - Network Stack             │   │
+│  └──────────────────────────────┘   │
+├─────────────────────────────────────┤
+│        Hardware                      │
+│  CPU | Memory | Disk | Network      │
+└─────────────────────────────────────┘
 ```
 
-### Essential Commands
+**Key Concept**: Applications in User Space cannot directly access hardware. They must use **system calls** to ask the kernel.
 
-#### File Operations
+### The Boot Process (Troubleshooting Boot Failures)
+
+1. **BIOS/UEFI**: Hardware initialization, POST (Power-On Self-Test)
+2. **Bootloader (GRUB)**: Loads the kernel into memory
+3. **Kernel**: Mounts the root filesystem (initramfs)
+4. **Init System (systemd)**: PID 1, starts all other services
+5. **User Space**: Login prompt / GUI
+
+**Common boot issues**:
+```bash
+# Check boot logs
+journalctl -b
+
+# Check kernel messages
+dmesg | less
+
+# Check systemd services that failed
+systemctl --failed
+```
+
+---
+
+## 📂 File System Essentials
+
+### The /proc and /sys Filesystems
+
+These are **pseudo-filesystems** that provide an interface to kernel data.
+
+#### /proc - Process Information
+```bash
+# CPU information
+cat /proc/cpuinfo
+
+# Memory information
+cat /proc/meminfo
+
+# Current processes
+ls /proc/
+# Each number is a PID
+
+# Process details
+cat /proc/1234/status
+cat /proc/1234/cmdline
+```
+
+#### /sys - Device and Driver Information
+```bash
+# Block devices
+ls /sys/block/
+
+# Network interfaces
+ls /sys/class/net/
+```
+
+**Real-world use case**:
+```bash
+# Check if a process is still running
+if [ -d "/proc/$PID" ]; then
+    echo "Process is running"
+fi
+```
+
+### File System Hierarchy (What Goes Where)
+
+| Directory | Purpose | Example |
+|:---|:---|:---|
+| `/bin`, `/usr/bin` | Essential binaries | `ls`, `cat`, `grep` |
+| `/sbin`, `/usr/sbin` | System binaries | `iptables`, `systemctl` |
+| `/etc` | Configuration files | `/etc/nginx/nginx.conf` |
+| `/var` | Variable data | `/var/log/`, `/var/lib/docker/` |
+| `/tmp` | Temporary files | Cleared on reboot |
+| `/home` | User home directories | `/home/username/` |
+| `/opt` | Optional software | `/opt/myapp/` |
+| `/proc` | Process information | Pseudo-filesystem |
+| `/sys` | Device information | Pseudo-filesystem |
+
+---
+
+## 🛠️ Essential Commands for Daily Work
+
+### File Operations (The Basics Done Right)
 
 ```bash
-# List files
-ls -lah                    # Detailed list with hidden files
-ls -lht                    # Sorted by time
-ls -lhS                    # Sorted by size
+# List files (with useful flags)
+ls -lah                    # Long format, all files, human-readable sizes
+ls -lht                    # Sorted by time (newest first)
+ls -lhS                    # Sorted by size (largest first)
 
-# Change directory
-cd /path/to/directory      # Absolute path
-cd ..                      # Parent directory
-cd ~                       # Home directory
-cd -                       # Previous directory
+# Find files (powerful search)
+find /var/log -name "*.log" -mtime -7    # Modified in last 7 days
+find /var/log -type f -size +100M        # Files larger than 100MB
+find . -name "*.tmp" -delete             # Find and delete
 
-# Create directories
-mkdir -p /path/to/create   # Create with parents
-mkdir dir1 dir2 dir3      # Create multiple
-
-# Copy files
-cp source dest             # Copy file
-cp -r source dest         # Copy directory recursively
-cp -p source dest         # Preserve attributes
-
-# Move/rename
-mv oldname newname         # Rename
-mv file /path/to/         # Move
-
-# Remove
-rm file                    # Remove file
-rm -rf directory          # Remove directory (careful!)
-rm -i file                # Interactive removal
-
-# Find files
-find /path -name "*.log"   # Find by name
-find /path -type f         # Find files only
-find /path -mtime -7       # Modified in last 7 days
-find /path -size +100M     # Larger than 100MB
-
-# Search in files
-grep "pattern" file        # Search in file
-grep -r "pattern" /path   # Recursive search
-grep -i "pattern" file    # Case insensitive
-grep -v "pattern" file    # Invert match
+# Search in files (grep)
+grep -r "ERROR" /var/log/                # Recursive search
+grep -i "error" file.log                 # Case-insensitive
+grep -v "INFO" file.log                  # Invert match (exclude INFO)
+grep -A 5 "ERROR" file.log               # Show 5 lines after match
+grep -B 5 "ERROR" file.log               # Show 5 lines before match
 ```
 
-#### Text Processing
+### Text Processing (DevOps Essentials)
 
 ```bash
 # View files
-cat file                   # Display entire file
-less file                  # Page through file
-head -n 20 file           # First 20 lines
-tail -n 20 file           # Last 20 lines
-tail -f file              # Follow (watch) file
+cat file.txt               # Display entire file
+less file.txt              # Page through file (q to quit)
+head -n 20 file.txt        # First 20 lines
+tail -n 20 file.txt        # Last 20 lines
+tail -f /var/log/app.log   # Follow (watch) file in real-time
 
 # Text manipulation
-cut -d: -f1 file          # Cut by delimiter
-awk '{print $1}' file     # Print first field
-sed 's/old/new/g' file    # Replace text
-sort file                 # Sort lines
-uniq file                # Remove duplicates
-wc -l file               # Count lines
-
-# Advanced text processing
-# Extract IP addresses from logs
-grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' access.log
-
-# Count unique IPs
-grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' access.log | sort | uniq | wc -l
-
-# Find largest files
-find /var/log -type f -exec ls -lh {} \; | awk '{print $5, $9}' | sort -hr | head -10
+cut -d: -f1 /etc/passwd    # Extract first field (usernames)
+awk '{print $1}' file      # Print first column
+sed 's/old/new/g' file     # Replace text
+sort file                  # Sort lines
+uniq file                  # Remove duplicates
+wc -l file                 # Count lines
 ```
 
-#### Process Management
+**Real-world example: Extract unique IPs from access log**
+```bash
+# access.log format: IP - - [timestamp] "GET /path" 200
+awk '{print $1}' access.log | sort | uniq | wc -l
+```
+
+### Process Management (Production Debugging)
 
 ```bash
 # View processes
 ps aux                     # All processes
-ps aux | grep nginx       # Filter processes
-top                       # Interactive process viewer
-htop                      # Better top (install separately)
+ps aux | grep nginx        # Filter processes
+top                        # Interactive process viewer
+htop                       # Better top (install: apt install htop)
 
 # Process control
-kill PID                   # Kill process
-kill -9 PID               # Force kill
-killall process_name      # Kill by name
-pkill -f pattern          # Kill by pattern
+kill PID                   # Graceful kill (SIGTERM)
+kill -9 PID                # Force kill (SIGKILL)
+killall nginx              # Kill by name
+pkill -f "python app.py"   # Kill by pattern
 
 # Background jobs
-command &                 # Run in background
-nohup command &          # Run detached
-jobs                      # List jobs
-fg %1                     # Bring to foreground
-bg %1                     # Send to background
-
-# System information
-uptime                    # System uptime
-free -h                   # Memory usage
-df -h                     # Disk usage
-du -sh /path              # Directory size
+command &                  # Run in background
+nohup command &            # Run detached (survives logout)
+jobs                       # List background jobs
+fg %1                      # Bring job 1 to foreground
 ```
 
-#### Network Operations
+**Understanding signals**:
+```bash
+# SIGTERM (15) - Polite kill, allows cleanup
+kill -15 $PID
+
+# SIGKILL (9) - Force kill, no cleanup
+kill -9 $PID
+
+# SIGHUP (1) - Reload configuration
+kill -1 $(pgrep nginx)     # Reload nginx config
+```
+
+---
+
+## 🌐 Networking Commands (Cloud Era)
+
+### Modern Networking Tools
 
 ```bash
-# Network configuration
-ip addr show              # Show IP addresses
-ip route show             # Show routing table
-ifconfig                  # Network interfaces (deprecated)
-netstat -tulpn            # Network connections
-ss -tulpn                 # Modern netstat
+# IP address (replaces ifconfig)
+ip addr show               # Show all interfaces
+ip addr show eth0          # Show specific interface
+ip route show              # Show routing table
+
+# Socket statistics (replaces netstat)
+ss -tulpn                  # All listening TCP/UDP ports with process names
+ss -t state established    # Show established TCP connections
+
+# DNS debugging
+dig google.com             # DNS lookup
+dig +trace google.com      # Trace DNS resolution
+dig @8.8.8.8 google.com    # Query specific nameserver
 
 # Network testing
-ping host                 # Ping host
-traceroute host           # Trace route
-curl -I url               # HTTP headers
-wget url                  # Download file
-
-# Port checking
-nc -zv host port          # Test port
-telnet host port          # Test connection
+ping -c 4 google.com       # Send 4 packets
+curl -I https://google.com # HTTP headers
+wget https://example.com   # Download file
+nc -zv host 80             # Test if port is open
 ```
 
-#### System Administration
+**Real-world troubleshooting**:
+```bash
+# Check if nginx is listening on port 80
+ss -tulpn | grep :80
+
+# Test connectivity to database
+nc -zv db.example.com 5432
+
+# Check DNS resolution
+dig +short myapp.example.com
+```
+
+### Packet Analysis (Advanced Debugging)
 
 ```bash
-# User management
-whoami                    # Current user
-id                        # User and group IDs
-sudo command              # Run as root
-su -                      # Switch to root
+# Capture traffic on port 80
+tcpdump -i eth0 port 80
 
-# Package management (Ubuntu/Debian)
-apt update                # Update package list
-apt upgrade               # Upgrade packages
-apt install package      # Install package
-apt remove package       # Remove package
-apt search keyword       # Search packages
+# Save to file for Wireshark analysis
+tcpdump -i eth0 -w capture.pcap
 
-# Package management (RHEL/CentOS)
-yum update                # Update packages
-yum install package      # Install package
-yum remove package       # Remove package
-
-# Service management (systemd)
-systemctl status service  # Service status
-systemctl start service   # Start service
-systemctl stop service    # Stop service
-systemctl restart service # Restart service
-systemctl enable service  # Enable on boot
-systemctl disable service # Disable on boot
-
-# Logs
-journalctl -u service     # Service logs
-journalctl -f             # Follow logs
-journalctl --since "1 hour ago"
-dmesg                     # Kernel messages
+# Filter by host
+tcpdump -i eth0 host 192.168.1.100
 ```
 
-## 🔧 Advanced Topics
+---
 
-### Permissions
+## 🚀 Performance Analysis & Troubleshooting
+
+### CPU Analysis
+
+```bash
+# Load average
+uptime
+# Output: 15:30:01 up 10 days, load average: 2.5, 1.8, 1.2
+#                                             1min 5min 15min
+
+# Rule of thumb: Load > Number of CPU cores = overloaded
+nproc                      # Number of CPU cores
+```
+
+**Interpreting load average**:
+- Load = 1.0 on a 4-core system: 25% utilized
+- Load = 4.0 on a 4-core system: 100% utilized
+- Load = 8.0 on a 4-core system: **Overloaded!**
+
+### Memory Analysis
+
+```bash
+# Memory usage
+free -h
+#               total        used        free      shared  buff/cache   available
+# Mem:           15Gi       5.0Gi       2.0Gi       100Mi       8.0Gi       10Gi
+
+# Important: Look at "available", not "free"
+# Linux uses free RAM for caching (buff/cache) - this is GOOD!
+```
+
+**Understanding memory**:
+- **used**: Actually used by applications
+- **buff/cache**: Used for disk caching (can be freed if needed)
+- **available**: Memory available for new applications
+
+### Disk I/O Analysis
+
+```bash
+# Disk usage
+df -h                      # Disk space
+du -sh /var/log/*          # Directory sizes
+
+# I/O statistics
+iostat -xz 1               # Every 1 second
+# Look at %util column:
+# - Near 100% = disk is bottleneck
+# - High await = slow disk
+
+# Which process is eating I/O?
+iotop                      # Install: apt install iotop
+```
+
+**Real-world scenario: "Disk is full"**
+```bash
+# 1. Check usage
+df -h
+
+# 2. Find large files
+du -ah / | sort -rh | head -n 20
+
+# 3. Check for deleted files held by processes
+lsof +L1
+# (Common issue: log files deleted but process still writing)
+
+# 4. Clean up
+journalctl --vacuum-time=7d    # Keep only 7 days of logs
+```
+
+---
+
+## 🔧 System Administration
+
+### Service Management (systemd)
+
+```bash
+# Service status
+systemctl status nginx
+
+# Start/stop/restart
+systemctl start nginx
+systemctl stop nginx
+systemctl restart nginx
+systemctl reload nginx         # Reload config without restart
+
+# Enable/disable on boot
+systemctl enable nginx
+systemctl disable nginx
+
+# View logs
+journalctl -u nginx            # Service logs
+journalctl -u nginx -f         # Follow logs
+journalctl -u nginx --since "1 hour ago"
+journalctl -u nginx --since "2024-01-01"
+```
+
+**Create a simple systemd service**:
+```bash
+# /etc/systemd/system/myapp.service
+[Unit]
+Description=My Application
+After=network.target
+
+[Service]
+Type=simple
+User=myapp
+WorkingDirectory=/opt/myapp
+ExecStart=/usr/bin/python3 /opt/myapp/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+# Reload systemd and start
+systemctl daemon-reload
+systemctl start myapp
+systemctl enable myapp
+```
+
+### Package Management
+
+```bash
+# Ubuntu/Debian (apt)
+apt update                     # Update package list
+apt upgrade                    # Upgrade packages
+apt install nginx              # Install package
+apt remove nginx               # Remove package
+apt search keyword             # Search packages
+
+# RHEL/CentOS (yum/dnf)
+yum update                     # Update packages
+yum install nginx              # Install package
+yum remove nginx               # Remove package
+```
+
+---
+
+## 🔒 Security Essentials
+
+### File Permissions
 
 ```bash
 # Understanding permissions
 # rwx rwx rwx
-# owner group others
+# │   │   └── Others
+# │   └────── Group
+# └────────── Owner
 # r=4, w=2, x=1
 
-chmod 755 file            # rwxr-xr-x
-chmod +x file             # Add execute
-chmod -w file             # Remove write
-chmod u+x file            # User execute
-chmod g+w file            # Group write
-chmod o-r file            # Others read
+chmod 755 script.sh            # rwxr-xr-x
+chmod 600 id_rsa               # rw------- (SSH keys MUST be 600)
+chmod +x script.sh             # Add execute permission
 
 # Ownership
-chown user:group file     # Change owner
-chown -R user:group dir   # Recursive
-
-# Special permissions
-chmod +s file             # Setuid/setgid
-chmod +t dir              # Sticky bit
+chown user:group file
+chown -R user:group directory
 ```
 
-### File System Operations
+**Real-world example**:
+```bash
+# SSH key permissions (common issue)
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/id_rsa
+chmod 644 ~/.ssh/id_rsa.pub
+chmod 644 ~/.ssh/authorized_keys
+```
+
+### SSH Hardening
 
 ```bash
-# Disk operations
-fdisk -l                  # List partitions
-lsblk                     # Block devices
-mount /dev/sda1 /mnt      # Mount filesystem
-umount /mnt               # Unmount
-df -h                     # Disk space
-du -h --max-depth=1       # Directory sizes
+# /etc/ssh/sshd_config
+PermitRootLogin no             # Disable root login
+PasswordAuthentication no      # Use keys only
+AllowUsers user1 user2         # Whitelist users
+Port 2222                      # Change default port (optional)
 
-# File system types
-ext4                      # Standard Linux
-xfs                       # High performance
-btrfs                     # Advanced features
+# Restart SSH
+systemctl restart sshd
 ```
 
-### Environment Variables
+### Firewall (ufw)
 
 ```bash
-# View variables
-env                       # All environment variables
-echo $PATH                # Specific variable
-printenv VAR              # Print variable
+# Enable firewall
+ufw enable
 
-# Set variables
-export VAR=value          # Export to environment
-VAR=value command         # Set for command only
+# Allow services
+ufw allow 22/tcp               # SSH
+ufw allow 80/tcp               # HTTP
+ufw allow 443/tcp              # HTTPS
 
-# Common variables
-$HOME                     # Home directory
-$USER                     # Username
-$PATH                     # Command search path
-$PWD                      # Current directory
-$SHELL                    # Shell program
+# Allow from specific IP
+ufw allow from 192.168.1.0/24
+
+# Check status
+ufw status
+
+# Delete rule
+ufw delete allow 80/tcp
 ```
 
-### Shell Scripting Basics
+---
+
+## 🎯 Real-World Troubleshooting Scenarios
+
+### Scenario 1: "Server is Slow"
+
+```bash
+# 1. Check load
+uptime
+
+# 2. Check CPU/Memory
+htop
+
+# 3. Check disk I/O
+iostat -xz 1
+
+# 4. Check network
+iftop                          # Install: apt install iftop
+
+# 5. Check processes
+ps aux --sort=-%cpu | head     # Top CPU consumers
+ps aux --sort=-%mem | head     # Top memory consumers
+```
+
+### Scenario 2: "Can't Connect to Service"
+
+```bash
+# 1. Is the service running?
+systemctl status nginx
+
+# 2. Is it listening on the port?
+ss -tulpn | grep :80
+
+# 3. Is the firewall blocking it?
+ufw status
+
+# 4. Can we connect locally?
+curl http://localhost
+
+# 5. Can we connect remotely?
+curl http://server-ip
+
+# 6. Check logs
+journalctl -u nginx -n 50
+```
+
+### Scenario 3: "Disk is Full"
+
+```bash
+# 1. Check usage
+df -h
+
+# 2. Find large directories
+du -sh /* | sort -rh | head -n 10
+
+# 3. Find large files
+find / -type f -size +100M -exec ls -lh {} \; 2>/dev/null
+
+# 4. Check for deleted files held by processes
+lsof +L1
+
+# 5. Clean up
+# - Rotate logs
+# - Delete old backups
+# - Clean package cache: apt clean
+```
+
+---
+
+## 🐚 Shell Scripting Basics
+
+### Essential Script Template
 
 ```bash
 #!/bin/bash
-# Simple script example
+set -euo pipefail              # Exit on error, undefined var, pipe failure
 
 # Variables
-NAME="DevOps"
-VERSION=1.0
+LOG_FILE="/var/log/myapp.log"
+DATE=$(date +%Y-%m-%d)
 
-# Output
-echo "Hello, $NAME!"
-echo "Version: $VERSION"
+# Functions
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+}
 
-# Conditionals
-if [ -f "$1" ]; then
-    echo "File exists"
-else
-    echo "File not found"
+error_exit() {
+    log "ERROR: $1"
+    exit 1
+}
+
+# Main script
+log "Starting backup"
+
+if [ ! -d "/backup" ]; then
+    error_exit "Backup directory does not exist"
 fi
 
-# Loops
+tar -czf "/backup/backup-$DATE.tar.gz" /var/www || error_exit "Backup failed"
+
+log "Backup completed successfully"
+```
+
+### Useful Patterns
+
+```bash
+# Check if file exists
+if [ -f "/path/to/file" ]; then
+    echo "File exists"
+fi
+
+# Check if directory exists
+if [ -d "/path/to/dir" ]; then
+    echo "Directory exists"
+fi
+
+# Loop through files
 for file in *.log; do
     echo "Processing $file"
 done
 
-# Functions
-function cleanup() {
-    echo "Cleaning up..."
-    rm -f /tmp/temp*
-}
+# Read file line by line
+while IFS= read -r line; do
+    echo "$line"
+done < file.txt
 ```
-
-### System Monitoring
-
-```bash
-# CPU monitoring
-top                       # CPU usage
-htop                      # Better interface
-vmstat 1                 # Virtual memory stats
-iostat 1                 # I/O statistics
-
-# Memory monitoring
-free -h                   # Memory usage
-cat /proc/meminfo         # Detailed memory info
-
-# Disk I/O
-iostat -x 1               # Disk I/O stats
-iotop                     # I/O by process
-
-# Network monitoring
-iftop                     # Network traffic
-nethogs                   # Network by process
-```
-
-## 🐳 Docker & Container Commands
-
-```bash
-# Container operations
-docker ps                  # Running containers
-docker ps -a              # All containers
-docker exec -it container bash  # Execute in container
-docker logs container     # Container logs
-docker stats              # Container stats
-
-# Image operations
-docker images             # List images
-docker pull image         # Pull image
-docker build -t image .   # Build image
-docker rmi image          # Remove image
-```
-
-## 🔐 Security Best Practices
-
-```bash
-# SSH keys
-ssh-keygen -t rsa -b 4096  # Generate key
-ssh-copy-id user@host     # Copy key to host
-
-# Firewall (ufw)
-ufw enable                # Enable firewall
-ufw allow 22/tcp          # Allow SSH
-ufw status                # Check status
-
-# File integrity
-md5sum file               # MD5 checksum
-sha256sum file            # SHA256 checksum
-
-# Secure file transfer
-scp file user@host:/path  # Secure copy
-rsync -avz source dest    # Synchronize
-```
-
-## 📝 Common DevOps Tasks
-
-### Log Analysis
-
-```bash
-# Find errors in logs
-grep -i error /var/log/app.log
-grep -E "ERROR|WARN" /var/log/app.log
-
-# Count occurrences
-grep "pattern" file | wc -l
-
-# Extract timestamps
-grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' logfile
-
-# Top IP addresses
-awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -10
-```
-
-### Disk Cleanup
-
-```bash
-# Find large files
-find / -type f -size +100M 2>/dev/null
-
-# Clean package cache
-apt clean                 # Debian/Ubuntu
-yum clean all            # RHEL/CentOS
-
-# Clean logs
-journalctl --vacuum-time=7d  # Keep 7 days
-find /var/log -type f -mtime +30 -delete
-```
-
-### System Maintenance
-
-```bash
-# Update system
-apt update && apt upgrade -y  # Debian/Ubuntu
-yum update -y              # RHEL/CentOS
-
-# Check disk space
-df -h
-du -sh /* | sort -h
-
-# Check memory
-free -h
-cat /proc/meminfo | grep MemAvailable
-
-# Check load
-uptime
-cat /proc/loadavg
-```
-
-## 🎯 Practice Exercises
-
-### Exercise 1: Log Analysis
-```bash
-# Create sample log file
-cat > access.log << EOF
-192.168.1.1 - - [25/Oct/2024:10:15:30] "GET /page1 HTTP/1.1" 200
-192.168.1.2 - - [25/Oct/2024:10:15:31] "GET /page2 HTTP/1.1" 404
-192.168.1.1 - - [25/Oct/2024:10:15:32] "GET /page1 HTTP/1.1" 200
-EOF
-
-# Tasks:
-# 1. Count total requests
-wc -l access.log
-
-# 2. Find unique IPs
-awk '{print $1}' access.log | sort | uniq
-
-# 3. Count requests per IP
-awk '{print $1}' access.log | sort | uniq -c
-
-# 4. Find 404 errors
-grep "404" access.log
-```
-
-### Exercise 2: System Monitoring Script
-```bash
-#!/bin/bash
-# system_check.sh
-
-echo "=== System Health Check ==="
-echo "Uptime: $(uptime)"
-echo "Memory: $(free -h | grep Mem)"
-echo "Disk: $(df -h / | tail -1)"
-echo "Load: $(cat /proc/loadavg)"
-```
-
-### Exercise 3: Backup Script
-```bash
-#!/bin/bash
-# backup.sh
-
-SOURCE="/var/www"
-DEST="/backup/$(date +%Y%m%d)"
-mkdir -p "$DEST"
-tar -czf "$DEST/backup.tar.gz" "$SOURCE"
-```
-
-## 📚 Cheat Sheet
-
-```bash
-# Quick reference
-Ctrl+C          # Cancel command
-Ctrl+D          # Exit shell
-Ctrl+Z          # Suspend process
-Ctrl+L          # Clear screen
-!!              # Last command
-!$              # Last argument
-history         # Command history
-alias ll='ls -lah'  # Create alias
-
-# Redirection
-command > file      # Redirect output
-command >> file     # Append output
-command < file      # Redirect input
-command 2> file     # Redirect errors
-command &> file     # Redirect all
-
-# Pipes
-command1 | command2  # Pipe output
-command1 | tee file  # Output and save
-```
-
-## ✅ Mastery Checklist
-
-- [ ] Navigate file system confidently
-- [ ] Manage files and directories
-- [ ] Understand permissions
-- [ ] Use text processing tools
-- [ ] Manage processes
-- [ ] Configure networking
-- [ ] Write basic shell scripts
-- [ ] Monitor system resources
-- [ ] Analyze logs effectively
-- [ ] Perform system administration tasks
 
 ---
 
-**Remember**: Linux proficiency is fundamental to DevOps. Practice daily, build scripts, and automate tasks. Mastery comes through hands-on experience.
+## ✅ Mastery Checklist
 
+After mastering this guide, you should be able to:
+
+- [ ] Navigate the file system confidently
+- [ ] Understand the boot process and troubleshoot boot failures
+- [ ] Use /proc and /sys for system information
+- [ ] Master essential commands (find, grep, awk, sed)
+- [ ] Manage processes and understand signals
+- [ ] Debug network issues with modern tools (ss, dig, tcpdump)
+- [ ] Analyze system performance (CPU, memory, disk I/O)
+- [ ] Manage services with systemd
+- [ ] Secure systems (permissions, SSH, firewall)
+- [ ] Troubleshoot common production issues
+- [ ] Write basic shell scripts for automation
+
+---
+
+## 📚 Practice Exercises
+
+### Exercise 1: Log Analysis
+```bash
+# Find all ERROR lines in the last hour
+journalctl --since "1 hour ago" | grep ERROR
+
+# Count unique IPs in access log
+awk '{print $1}' /var/log/nginx/access.log | sort | uniq | wc -l
+
+# Find top 10 IPs by request count
+awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -10
+```
+
+### Exercise 2: System Health Check Script
+```bash
+#!/bin/bash
+echo "=== System Health Check ==="
+echo "Uptime: $(uptime)"
+echo "Load: $(cat /proc/loadavg)"
+echo "Memory: $(free -h | grep Mem)"
+echo "Disk: $(df -h / | tail -1)"
+echo "Failed Services: $(systemctl --failed --no-pager)"
+```
+
+---
+
+**Next Step**: Networking is the nervous system of DevOps. Master it in **[Networking Fundamentals](./networking.md)**.
+
+> **Remember**: Linux proficiency comes from daily practice. Use the command line for everything. Break things in a VM. Read man pages. The more you use it, the more natural it becomes.

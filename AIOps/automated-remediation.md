@@ -1,67 +1,104 @@
-# Automated Remediation
+# Automated Remediation: Self-Healing Systems
 
-## 🎯 Self-Healing Systems
+## 🎯 Introduction
 
-Automated response to incidents and issues.
+Why wake up at 3 AM to restart a service? Automated remediation detects issues and fixes them without human intervention.
 
-## 🔧 Remediation Types
+## 🔄 The Loop
 
-### Automatic
-- Self-healing actions
-- No human intervention
-- Low-risk operations
-
-### Semi-Automatic
-- Suggested actions
-- Human approval
-- Medium-risk operations
-
-### Manual
-- Recommendations
-- Human execution
-- High-risk operations
-
-## 📝 Examples
-
-### Auto-Scaling
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: app-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: app
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-```
-
-### Restart Service
-```python
-def auto_remediate(incident):
-    if incident.type == "service_down":
-        restart_service(incident.service)
-        notify_team(incident)
-```
-
-## ✅ Best Practices
-
-- Start with low-risk actions
-- Implement safeguards
-- Monitor remediation
-- Learn from outcomes
-- Document actions
+1. **Detect**: Monitoring system sees an issue.
+2. **Diagnose**: Verify it's a known issue.
+3. **Act**: Execute remediation script.
+4. **Verify**: Check if the issue is resolved.
 
 ---
 
-**Next**: Learn scaling AI workloads.
+## 🛠️ Tools
 
+### 1. Kubernetes Liveness Probes (Basic)
+
+**Restart container if it hangs**:
+```yaml
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 3
+  periodSeconds: 3
+```
+
+### 2. StackStorm (Advanced)
+
+**Event-driven automation**:
+- **Sensor**: Detects alert from Prometheus.
+- **Rule**: If "Disk Full" AND "Severity Critical".
+- **Action**: Run "Clean Logs" script.
+
+### 3. Ansible / SaltStack
+
+**Trigger playbooks from alerts**:
+```yaml
+# Remediation playbook
+- name: Restart Nginx
+  hosts: webservers
+  tasks:
+    - service:
+        name: nginx
+        state: restarted
+```
+
+---
+
+## 🛡️ Safety First
+
+**Risk**: Automation gone wrong can destroy the system (e.g., restarting all DB nodes at once).
+
+**Safety Mechanisms**:
+1. **Rate Limiting**: "Max 1 restart per hour"
+2. **Maintenance Windows**: "Only remediate during business hours"
+3. **Human Approval**: "Ask in Slack before deleting files"
+
+**Example: Safe Restart Script**:
+```bash
+#!/bin/bash
+# Check if we restarted recently
+if [ -f /tmp/last_restart ]; then
+  last=$(cat /tmp/last_restart)
+  now=$(date +%s)
+  if [ $((now - last)) -lt 3600 ]; then
+    echo "Restarted too recently. Escalating to human."
+    exit 1
+  fi
+fi
+
+# Restart
+systemctl restart myapp
+date +%s > /tmp/last_restart
+```
+
+---
+
+## 📝 Common Use Cases
+
+1. **Disk Full**:
+   - Action: Rotate logs, delete temp files, expand volume.
+2. **Service Down**:
+   - Action: Restart service.
+3. **High Memory**:
+   - Action: Restart worker process.
+4. **Bad Deployment**:
+   - Action: Auto-rollback.
+
+---
+
+## ✅ Best Practices
+
+- [ ] Start with low-risk actions (restart stateless services)
+- [ ] Implement strict rate limiting
+- [ ] Log every remediation action
+- [ ] Escalate to humans if remediation fails
+- [ ] Test remediation scripts regularly (Game Days)
+
+---
+
+**Next**: [Scaling AI Workloads](./scaling-ai-workloads.md).

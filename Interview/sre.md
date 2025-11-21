@@ -1,372 +1,110 @@
-# SRE Interview Questions: Complete Guide
+# SRE (Site Reliability Engineer) Interview Questions
 
 ## 🎯 Introduction
+SRE interviews focus on coding, system design, and "fixing broken things".
 
-This comprehensive guide covers Site Reliability Engineering (SRE) interview questions from fundamentals to advanced reliability engineering.
+## 🟢 Concepts
 
-## 📚 SRE Fundamentals
+### 1. What is the difference between DevOps and SRE?
+**Answer**: "Class SRE implements interface DevOps."
+- **DevOps**: Philosophy/Culture (Break silos, automate).
+- **SRE**: Prescriptive way to do DevOps (SLOs, Error Budgets, Toil reduction).
 
-### What is SRE?
-
-**Answer**: Site Reliability Engineering combines software engineering and operations to create scalable, reliable systems:
-
-**Key Principles**:
-1. **Automation**: Automate toil away
-2. **Measurement**: Measure everything
-3. **Risk Management**: Balance speed and reliability
-4. **Continuous Improvement**: Learn from failures
-5. **Shared Ownership**: Everyone owns reliability
-
-**SRE vs Traditional Ops**:
-- **Ops**: Manual, reactive, stability-focused
-- **SRE**: Automated, proactive, reliability + velocity
-
-### Explain SLO, SLI, SLA
-
+### 2. Explain SLI, SLO, and SLA.
 **Answer**:
-
-**SLI (Service Level Indicator)**:
-- Measurable aspect of service quality
-- Examples: Availability, latency, error rate
-- Formula: `SLI = (Good Events / Total Events) * 100`
-
-**SLO (Service Level Objective)**:
-- Target value for SLI
-- Example: 99.9% availability
-- Used for decision-making
-
-**SLA (Service Level Agreement)**:
-- Contractual commitment
-- Includes consequences if violated
-- Example: Service credits
-
-**Example**:
-```
-SLI: Successful requests / Total requests
-SLO: 99.9% (3 nines)
-SLA: 99.9% uptime or service credits
-```
-
-### What is Error Budget?
-
-**Answer**: Error budget = 100% - SLO
-
-**Example**:
-- SLO: 99.9% availability
-- Error Budget: 0.1% (43.2 minutes per month)
-
-**How it works**:
-- **Budget Available**: Continue feature development
-- **Budget Low**: Focus on reliability
-- **Budget Exhausted**: Freeze new features, focus on reliability
-
-**Purpose**: Balance velocity and reliability
-
-## 📊 Reliability Metrics
-
-### Explain the Four Golden Signals
-
-**Answer**:
-
-1. **Latency**: Time to serve a request
-   - Focus on tail latency (p95, p99)
-   - Differentiate successful vs failed requests
-
-2. **Traffic**: Demand on system
-   - Requests per second
-   - Concurrent users
-   - Data transfer rate
-
-3. **Errors**: Rate of failed requests
-   - HTTP 5xx errors
-   - Failed requests
-   - Error rate percentage
-
-4. **Saturation**: Resource utilization
-   - CPU, memory, disk, network
-   - Queue depth
-   - Resource exhaustion
-
-**Why These?**: They indicate system health and user experience
-
-### How do you measure reliability?
-
-**Answer**:
-
-**Availability**:
-- Uptime percentage
-- Formula: `(Uptime / Total Time) * 100`
-- Example: 99.9% = 3 nines
-
-**Error Rate**:
-- Failed requests / Total requests
-- Track by endpoint, service, region
-
-**Latency**:
-- Percentiles: p50, p95, p99
-- Average latency
-- Tail latency (p99)
-
-**MTTR (Mean Time to Recovery)**:
-- Average time to recover from failures
-- Target: < 1 hour
-
-**MTTD (Mean Time to Detect)**:
-- Average time to detect issues
-- Target: < 5 minutes
-
-## 🔧 Reliability Engineering
-
-### How do you design a reliable system?
-
-**Answer**:
-
-1. **Redundancy**:
-   - Multi-region deployment
-   - Multiple availability zones
-   - Replicated databases
-
-2. **Health Checks**:
-   - Liveness probes
-   - Readiness probes
-   - Startup probes
-
-3. **Auto-Scaling**:
-   - Horizontal Pod Autoscaler
-   - Cluster Autoscaler
-   - Predictive scaling
-
-4. **Circuit Breakers**:
-   - Prevent cascade failures
-   - Fail fast
-   - Automatic recovery
-
-5. **Graceful Degradation**:
-   - Fallback mechanisms
-   - Reduced functionality
-   - User experience preservation
-
-6. **Monitoring**:
-   - Comprehensive observability
-   - Real-time alerts
-   - Dashboards
-
-7. **Disaster Recovery**:
-   - Backup strategy
-   - Recovery procedures
-   - Regular testing
-
-### Explain Incident Response
-
-**Answer**: Structured approach to handling incidents:
-
-**Stages**:
-1. **Detection**: Identify issue (alerts, monitoring, user reports)
-2. **Response**: On-call engineer notified
-3. **Triage**: Assess severity and impact
-4. **Investigation**: Gather information, identify root cause
-5. **Mitigation**: Apply quick fix to restore service
-6. **Resolution**: Implement permanent fix
-7. **Post-Mortem**: Document, learn, improve
-
-**Best Practices**:
-- Blameless culture
-- Clear escalation paths
-- Well-documented runbooks
-- Communication plan
-- Post-mortem within 48 hours
-
-### What is a Runbook?
-
-**Answer**: Step-by-step guide for common operations:
-
-**Components**:
-- **Symptoms**: What indicates the issue
-- **Investigation**: How to diagnose
-- **Resolution**: How to fix
-- **Prevention**: How to prevent recurrence
-- **Escalation**: When to escalate
-
-**Example**:
-```markdown
-# High CPU Usage
-
-## Symptoms
-- CPU usage > 90%
-- Slow response times
-- Timeout errors
-
-## Investigation
-1. Check top processes: `top`
-2. Review application logs
-3. Check recent deployments
-
-## Resolution
-1. Scale up if needed
-2. Restart problematic services
-3. Check for infinite loops
-
-## Prevention
-- Set up autoscaling
-- Monitor resource usage
-- Regular capacity planning
-```
-
-## 📈 Capacity Planning
-
-### How do you do capacity planning?
-
-**Answer**:
-
-1. **Measure Current Usage**:
-   - Resource utilization
-   - Traffic patterns
-   - Growth trends
-
-2. **Forecast Demand**:
-   - Historical trends
-   - Business projections
-   - Seasonal patterns
-
-3. **Calculate Capacity Needs**:
-   - Headroom (20-30%)
-   - Peak capacity
-   - Growth buffer
-
-4. **Plan Scaling**:
-   - Horizontal scaling
-   - Vertical scaling
-   - Auto-scaling configuration
-
-5. **Monitor and Adjust**:
-   - Track actual vs forecast
-   - Adjust forecasts
-   - Update capacity plans
-
-### Explain Toil
-
-**Answer**: Toil is manual, repetitive, automatable work:
-
-**Characteristics**:
-- Manual
-- Repetitive
-- Automatable
-- No enduring value
-- Grows with system
-
-**Examples**:
-- Manual deployments
-- Restarting services
-- Checking logs manually
-- Creating tickets
-
-**Reduction**:
-- Automate repetitive tasks
-- Self-service tools
-- Eliminate root causes
-- Target: < 50% of time on toil
-
-## 🎯 Scenario Questions
-
-### How do you handle on-call?
-
-**Answer**:
-
-1. **Preparation**:
-   - Clear runbooks
-   - Access to systems
-   - Escalation paths
-   - Communication channels
-
-2. **During Incident**:
-   - Follow runbooks
-   - Communicate status
-   - Document actions
-   - Escalate when needed
-
-3. **After Incident**:
-   - Post-mortem
-   - Update runbooks
-   - Improve monitoring
-   - Automate fixes
-
-4. **Best Practices**:
-   - Rotation schedule
-   - Backup on-call
-   - Adequate tooling
-   - Blameless culture
-
-### Design a monitoring system
-
-**Answer**:
-
-1. **Data Collection**:
-   - Metrics (Prometheus)
-   - Logs (ELK, Loki)
-   - Traces (Jaeger)
-
-2. **Storage**:
-   - Time-series database
-   - Log aggregation
-   - Long-term retention
-
-3. **Alerting**:
-   - AlertManager
-   - Alert routing
-   - On-call integration
-
-4. **Visualization**:
-   - Grafana dashboards
-   - Service health pages
-   - Custom dashboards
-
-5. **Intelligence**:
-   - Anomaly detection
-   - Alert correlation
-   - Root cause analysis
-
-### How do you reduce alert fatigue?
-
-**Answer**:
-
-1. **Alert Tuning**:
-   - Set appropriate thresholds
-   - Reduce noise
-   - Focus on symptoms
-
-2. **Alert Correlation**:
-   - Group related alerts
-   - Root cause alerts
-   - Suppress noise
-
-3. **Intelligent Alerting**:
-   - ML-based filtering
-   - Context-aware alerts
-   - Priority ranking
-
-4. **Alert Policies**:
-   - Alert on SLO violations
-   - Alert on user impact
-   - Don't alert on everything
-
-5. **Review and Improve**:
-   - Regular alert reviews
-   - Remove unused alerts
-   - Update thresholds
-
-## ✅ Key Areas to Master
-
-- [ ] SRE principles and culture
-- [ ] SLOs, SLIs, and error budgets
-- [ ] Reliability engineering
-- [ ] Incident response
-- [ ] Monitoring and alerting
-- [ ] Capacity planning
-- [ ] Toil reduction
-- [ ] Post-mortems
-- [ ] On-call practices
-- [ ] System design for reliability
+- **SLI (Indicator)**: The metric (e.g., "Latency").
+- **SLO (Objective)**: The goal (e.g., "99% of requests < 200ms"). Internal target.
+- **SLA (Agreement)**: The contract (e.g., "If < 99%, we pay you back"). External promise.
+
+### 3. What is "Toil"?
+**Answer**: Work that is manual, repetitive, automatable, tactical, devoid of enduring value, and scales linearly as the service grows. SRE goal is to keep toil < 50% of time.
+
+### 4. What is an Error Budget?
+**Answer**: `100% - SLO`. If SLO is 99.9%, Error Budget is 0.1%.
+- If budget remains: Ship features fast.
+- If budget exhausted: Freeze features, focus on reliability.
 
 ---
 
-**Remember**: SRE interviews test both technical skills and cultural fit. Be prepared to discuss reliability engineering, incident response, and how you balance velocity with reliability. Show understanding of SRE principles and practices.
+## 🟡 Troubleshooting & Linux Internals
+
+### 5. A server is running out of memory. Linux OOM Killer kills your database. How do you prevent this?
+**Answer**:
+- **Short term**: Increase swap (bad for DB performance) or add RAM.
+- **Configuration**: Set `vm.overcommit_memory`.
+- **OOM Score**: Adjust `/proc/<pid>/oom_score_adj` to make DB less likely to be killed (-1000).
+- **Cgroups**: Limit other processes' memory usage.
+
+### 6. What is "Load Average"?
+**Answer**: The average number of processes in the run queue (running or waiting for CPU) or waiting for disk I/O (uninterruptible sleep) over 1, 5, and 15 minutes.
+- High Load + Low CPU usage = Disk I/O bottleneck.
+
+### 7. How do you troubleshoot a "Connection Refused" error?
+**Answer**:
+1. Is the process running? (`ps aux`)
+2. Is it listening on the port? (`ss -tulpn`)
+3. Is it listening on the correct interface (0.0.0.0 vs 127.0.0.1)?
+4. Is a firewall blocking it? (`iptables`, `ufw`, Security Groups).
+5. Is the backlog queue full?
+
+---
+
+## 🔴 System Design & Architecture
+
+### 8. Design a highly available distributed key-value store.
+**Answer**:
+- **Partitioning**: Consistent Hashing (distribute keys across nodes).
+- **Replication**: Leader-Follower or Multi-Leader.
+- **Consistency**: Quorum (R + W > N).
+- **Failure Detection**: Gossip Protocol.
+- **Storage Engine**: LSM Tree (Write heavy) or B-Tree (Read heavy).
+
+### 9. How do you handle "Thundering Herd" problem?
+**Answer**: When many clients retry simultaneously after a service recovers, crashing it again.
+- **Exponential Backoff**: Wait 1s, 2s, 4s...
+- **Jitter**: Add random noise to backoff (Wait 1.1s, 2.3s...).
+- **Circuit Breaker**: Stop calling failing service for a while.
+
+### 10. Design a rate limiter.
+**Answer**:
+- **Algorithms**: Token Bucket, Leaky Bucket, Fixed Window, Sliding Window Log.
+- **Storage**: Redis (fast, atomic counters).
+- **Distributed**: Consistent hashing to route user to same limiter node.
+
+---
+
+## 🧠 Coding (Python/Go)
+
+### 11. Write a script to parse a log file and find the top 5 IP addresses.
+**Answer (Bash)**:
+```bash
+awk '{print $1}' access.log | sort | uniq -c | sort -nr | head -5
+```
+**Answer (Python)**:
+```python
+from collections import Counter
+import re
+
+def top_ips(logfile):
+    ips = []
+    with open(logfile) as f:
+        for line in f:
+            match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', line)
+            if match:
+                ips.append(match.group())
+    return Counter(ips).most_common(5)
+```
+
+### 12. Implement a function to check if a binary tree is balanced.
+*(Standard LeetCode style question - SREs often get these)*
+
+---
+
+## 🛡️ Incident Management
+
+### 13. Describe an incident you managed.
+**Structure (STAR)**:
+- **Situation**: "Database CPU spiked to 100%."
+- **Task**: "Restore service availability."
+- **Action**: "Checked process list, found bad query, killed query, added index, scaled read replicas."
+- **Result**: "Restored in 5 mins. Added query linter to CI to prevent recurrence."
