@@ -1,45 +1,78 @@
 # AI Security Interview Questions
 
-## 🎯 AI Security Fundamentals
+## 🎯 Fundamentals
 
-**Q: What are AI security threats?**
-A: Prompt injection, model poisoning, data leakage, adversarial attacks, privacy violations, model theft.
+**Q: What are the main security concerns with LLMs?**
 
-**Q: Explain prompt injection**
-A: Attack where malicious input manipulates LLM behavior, bypassing safety filters or extracting information.
+**A:**
+- **Prompt Injection**: Malicious inputs that override instructions
+- **Data Leakage**: Training data or sensitive info exposure
+- **Jailbreaking**: Bypassing safety guardrails
+- **Model Theft**: Stealing model weights or architecture
+- **Adversarial Attacks**: Inputs that cause misbehavior
 
-**Q: How do you defend against prompt injection?**
-A: Input sanitization, system prompt hardening, output validation, guardrails, monitoring.
+**Q: Explain prompt injection types.**
 
-## 🔒 Security Practices
+**A:**
+- **Direct**: User input is the attack ("ignore previous")
+- **Indirect**: Data from external sources contains attack
+- **Jailbreaking**: Tricking model into unsafe behavior
 
-**Q: Explain model poisoning**
-A: Attack compromising model during training or through malicious updates, inserting backdoors or manipulating behavior.
+## 🔐 Security Measures
 
-**Q: How do you secure ML pipelines?**
-A: Secure data access, isolate training, sign models, monitor pipelines, implement access controls, audit logging.
+**Q: How do you prevent prompt injection?**
 
-**Q: What are guardrails?**
-A: Safety mechanisms enforcing security, compliance, and behavior in AI systems through input/output validation.
+**A:**
+1. Input validation and sanitization
+2. Separate user input from system prompts
+3. Use structured outputs (JSON mode)
+4. Implement output filtering
+5. Rate limiting and monitoring
+6. Multi-layered defense
 
-## 📝 Scenario Questions
+**Q: How do you secure an AI inference endpoint?**
 
-**Q: Design secure LLM application**
-A: Input validation, prompt injection defense, output filtering, guardrails, monitoring, rate limiting, access controls.
+**A:**
+- Authentication (API keys, OAuth)
+- Rate limiting
+- Input validation
+- Output sanitization
+- Audit logging
+- Cost controls
+- DDoS protection
 
-**Q: How do you monitor AI models?**
-A: Track predictions, detect drift, monitor performance, detect anomalies, track security events, compliance monitoring.
+## 🎯 Scenario Questions
 
-## ✅ Key Areas
+**Q: Design a secure AI chatbot architecture.**
 
-- LLM security
-- Model security
-- Pipeline security
-- Threat detection
-- Guardrails
-- Monitoring
+**A:**
+```
+┌─────────────────────────────────────────┐
+│ User Input                              │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Input Guardrails                        │
+│ - Prompt injection detection            │
+│ - Content filtering                     │
+│ - Rate limiting                         │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ LLM Inference                           │
+│ - System prompt isolation               │
+│ - Limited context window                │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Output Guardrails                       │
+│ - PII/PHI filtering                     │
+│ - Hallucination detection               │
+│ - Safety checks                         │
+└─────────────────────────────────────────┘
+```
 
 ---
 
-**Next**: Review AIOps interview questions.
+**Next**: Review [AIOps Interview](./aiops.md) questions.
 

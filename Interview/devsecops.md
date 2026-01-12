@@ -1,45 +1,147 @@
 # DevSecOps Interview Questions
 
-## 🎯 Security Fundamentals
+## 🎯 Fundamentals
 
 **Q: What is DevSecOps?**
-A: Integration of security into DevOps, shifting security left, making security everyone's responsibility.
 
-**Q: Explain SAST, SCA, DAST**
-A: SAST (Static) analyzes source code. SCA (Software Composition) scans dependencies. DAST (Dynamic) tests running applications.
+**A:** DevSecOps integrates security practices throughout the DevOps lifecycle, making security a shared responsibility rather than a late-stage gate. Key principles:
+- Shift Left: Find issues early
+- Automate security testing
+- Security as Code
+- Continuous compliance
 
-**Q: How do you manage secrets?**
-A: Use secret managers (Vault, AWS Secrets Manager), never commit secrets, rotate regularly, implement access controls.
+**Q: Explain "Shift Left" in security.**
 
-## 🔒 Security Practices
+**A:** Moving security earlier in the development lifecycle:
+- Pre-commit hooks for secrets
+- SAST in pull requests
+- SCA in CI pipeline
+- Security reviews during design
 
-**Q: How do you secure containers?**
-A: Scan images, use minimal base images, run as non-root, implement runtime protection, use network policies.
+## 🔍 Security Testing
 
-**Q: Explain supply chain security**
-A: Secure entire software supply chain: source code, dependencies, build process, distribution. Use SBOM, signing, verification.
+**Q: Explain SAST, DAST, and SCA.**
 
-**Q: What is zero trust?**
-A: Never trust, always verify. Authenticate all requests, least privilege access, assume breach, continuous monitoring.
+**A:**
+- **SAST** (Static): Analyzes source code without execution
+- **DAST** (Dynamic): Tests running application
+- **SCA** (Composition): Scans dependencies for vulnerabilities
 
-## 📝 Scenario Questions
+**Q: What tools would you use for each?**
 
-**Q: How do you implement security in CI/CD?**
-A: Security gates at each stage, automated scanning (SAST/SCA/DAST), secrets management, IaC scanning, policy enforcement.
+| Type | Tools |
+|------|-------|
+| SAST | Semgrep, SonarQube, CodeQL |
+| DAST | OWASP ZAP, Burp Suite |
+| SCA | Trivy, Snyk, Dependabot |
 
-**Q: Design a secure container deployment**
-A: Image scanning, signed images, runtime protection, network policies, RBAC, secrets management, monitoring.
+**Q: How do you handle false positives in security scanning?**
 
-## ✅ Key Areas
+**A:**
+1. Triage and document reasoning
+2. Add to ignore list with expiration
+3. Create custom rules to improve accuracy
+4. Regular review of suppressions
+5. Track metrics on false positive rates
 
-- Security scanning
-- Secrets management
-- Container security
-- Supply chain security
-- Compliance
-- Incident response
+## 🔐 Secrets Management
+
+**Q: How do you prevent secrets in source code?**
+
+**A:**
+- Pre-commit hooks (gitleaks, trufflehog)
+- CI pipeline scanning
+- GitHub secret scanning
+- Developer education
+- Git history cleanup for exposed secrets
+
+**Q: Compare Vault, AWS Secrets Manager, and SOPS.**
+
+| Feature | Vault | Secrets Manager | SOPS |
+|---------|-------|-----------------|------|
+| Dynamic secrets | Yes | Limited | No |
+| GitOps friendly | No | No | Yes |
+| Self-managed | Yes | No | Partial |
+| Cost | Infrastructure | Per secret | Free |
+
+## 📦 Container Security
+
+**Q: How do you secure container images?**
+
+**A:**
+1. Use minimal base images (distroless, Alpine)
+2. Don't run as root
+3. Scan images for vulnerabilities
+4. Sign images with Cosign
+5. Use read-only root filesystem
+6. Drop all capabilities
+
+**Q: Explain Kubernetes security best practices.**
+
+**A:**
+- Enable RBAC, disable anonymous auth
+- Use Pod Security Standards
+- Implement Network Policies
+- Enable audit logging
+- Use admission controllers (OPA, Kyverno)
+- Encrypt secrets at rest
+
+## 🔗 Supply Chain Security
+
+**Q: What is SLSA and why does it matter?**
+
+**A:** Supply chain Levels for Software Artifacts - framework for supply chain integrity:
+- Level 1: Build process documented
+- Level 2: Hosted build, signed provenance
+- Level 3: Hardened build platform
+- Level 4: Hermetic, reproducible builds
+
+**Q: How do you implement supply chain security?**
+
+**A:**
+- Pin and verify dependencies
+- Generate and verify SBOMs
+- Sign artifacts with Sigstore/Cosign
+- Use attestations for provenance
+- Verify signatures at deployment
+
+## 🎯 Scenario Questions
+
+**Q: A developer accidentally committed an API key. What do you do?**
+
+**A:**
+1. **Immediate**: Rotate/revoke the key
+2. **Remove**: Use git-filter-repo to remove from history
+3. **Notify**: Alert affected parties
+4. **Prevent**: Add pre-commit hooks
+5. **Document**: Create incident report
+
+**Q: Design a secure CI/CD pipeline.**
+
+**A:**
+```
+┌─────────────────────────────────────────┐
+│ Pre-commit: Secrets scan, linting      │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Build: SAST, SCA, Unit tests           │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Test: DAST, Integration, Security      │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Release: Image scan, sign, SBOM        │
+└──────────────────┬──────────────────────┘
+                   ▼
+┌─────────────────────────────────────────┐
+│ Deploy: Verify signature, admission    │
+└─────────────────────────────────────────┘
+```
 
 ---
 
-**Next**: Review AI security interview questions.
+**Next**: Review [AI Security Interview](./ai-security.md) questions.
 
