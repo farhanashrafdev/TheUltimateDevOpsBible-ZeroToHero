@@ -1,117 +1,153 @@
-# CI/CD Labs
+# CI/CD Hands-On Labs
 
-## 🎯 CI/CD Practical Exercises
+## 🎯 Overview
 
-### Lab 1: GitHub Actions
-**Objective**: Create CI pipeline
+Build and deploy applications using GitHub Actions, GitLab CI, and ArgoCD.
 
-**Steps**:
-1. Create `.github/workflows/ci.yml`
-2. Configure build job
-3. Add test job
-4. Set up artifacts
+## 📚 Lab 1: GitHub Actions Pipeline
 
-**Example**:
+**Objective**: Create a complete CI/CD pipeline
+
+### Setup
+
+```bash
+mkdir cicd-lab && cd cicd-lab
+git init
+npm init -y
+```
+
+### Create Workflow
+
 ```yaml
-name: CI
-on: [push, pull_request]
+# .github/workflows/ci-cd.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
       - run: npm ci
       - run: npm test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy
+        run: echo "Deploying to production..."
 ```
 
-### Lab 2: GitLab CI
-**Objective**: Multi-stage pipeline
+---
 
-**Steps**:
-1. Create `.gitlab-ci.yml`
-2. Define stages
-3. Configure jobs
-4. Add deployment
+## 📚 Lab 2: GitOps with ArgoCD
 
-**Example**:
-```yaml
-stages:
-  - build
-  - test
-  - deploy
+**Objective**: Deploy using GitOps workflow
 
-build:
-  stage: build
-  script:
-    - docker build -t app .
+### Install ArgoCD
 
-test:
-  stage: test
-  script:
-    - docker run app npm test
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Get password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
-### Lab 3: Jenkins Pipeline
-**Objective**: Declarative pipeline
+### Create Application
 
-**Steps**:
-1. Create Jenkinsfile
-2. Configure stages
-3. Add post-actions
-4. Test pipeline
-
-**Example**:
-```groovy
-pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                sh 'npm install'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
-    }
-}
-```
-
-### Lab 4: Argo CD
-**Objective**: GitOps deployment
-
-**Steps**:
-1. Install Argo CD
-2. Create application
-3. Configure sync
-4. Deploy application
-
-**Application Example**:
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-app
+  name: myapp
+  namespace: argocd
 spec:
+  project: default
   source:
-    repoURL: https://github.com/user/repo.git
-    path: k8s
+    repoURL: https://github.com/myorg/myapp-manifests
+    targetRevision: HEAD
+    path: kubernetes
   destination:
     server: https://kubernetes.default.svc
     namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
 ```
-
-## ✅ Completion Checklist
-
-- [ ] Created CI pipelines
-- [ ] Configured CD
-- [ ] Tested deployments
-- [ ] Documented workflows
 
 ---
 
-**Next**: Complete Kubernetes labs.
+## 📚 Lab 3: Multi-Environment Deployment
+
+**Objective**: Deploy to dev/staging/prod
+
+### Kustomize Structure
+
+```
+manifests/
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+└── overlays/
+    ├── dev/
+    │   └── kustomization.yaml
+    ├── staging/
+    │   └── kustomization.yaml
+    └── prod/
+        └── kustomization.yaml
+```
+
+### Environment Overlay
+
+```yaml
+# overlays/prod/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: production
+resources:
+  - ../../base
+replicas:
+  - name: myapp
+    count: 3
+images:
+  - name: myapp
+    newTag: v1.0.0
+```
+
+---
+
+## ✅ Completion Checklist
+
+- [ ] Lab 1: GitHub Actions pipeline
+- [ ] Lab 2: ArgoCD GitOps
+- [ ] Lab 3: Multi-environment Kustomize
 
