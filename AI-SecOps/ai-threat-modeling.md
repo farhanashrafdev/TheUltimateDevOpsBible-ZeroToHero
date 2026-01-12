@@ -1,60 +1,76 @@
 # AI Threat Modeling
 
-## 🎯 Threat Modeling for AI Systems
+## 🎯 Introduction
 
-Systematic approach to identifying and mitigating security threats in AI/ML systems.
+AI threat modeling identifies security risks specific to machine learning systems, from data poisoning to model theft.
 
-## 📚 Threat Categories
+## 📚 AI-Specific Threats
 
-### Data Threats
-- Training data poisoning
-- Data leakage
-- Privacy violations
-- Data exfiltration
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      AI/ML Threat Landscape                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Training Phase              Inference Phase        Model Assets    │
+│  ├── Data poisoning          ├── Prompt injection  ├── Model theft │
+│  ├── Label flipping          ├── Adversarial       ├── IP theft    │
+│  ├── Backdoor attacks            inputs            ├── Reverse     │
+│  └── Training data           ├── Jailbreaking          engineering │
+│      extraction              └── Output             └── API abuse  │
+│                                  manipulation                       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-### Model Threats
-- Model theft
-- Model inversion
-- Adversarial attacks
-- Model poisoning
+## 🔧 STRIDE for AI
 
-### Infrastructure Threats
-- Compute resource attacks
-- Model serving attacks
-- Pipeline compromise
-- Supply chain attacks
+| Threat | AI Example | Mitigation |
+|--------|------------|------------|
+| **S**poofing | Fake training data source | Data provenance |
+| **T**ampering | Model weight modification | Signed models |
+| **R**epudiation | Deny generating output | Audit logging |
+| **I**nformation Disclosure | Training data extraction | Differential privacy |
+| **D**enial of Service | Resource exhaustion | Rate limiting |
+| **E**levation | Jailbreaking guardrails | Multi-layer defense |
 
-## 🔍 Threat Analysis
+## 📝 Threat Model Template
 
-### STRIDE Framework
-- **S**poofing: Fake identities
-- **T**ampering: Data/model modification
-- **R**epudiation: Deny actions
-- **I**nformation Disclosure: Data leakage
-- **D**enial of Service: Availability attacks
-- **E**levation of Privilege: Unauthorized access
+### 1. System Description
+- Model type and architecture
+- Data sources and sensitivity
+- Deployment environment
+- Access patterns
 
-## 📝 Example Threats
+### 2. Asset Identification
+- Training data
+- Model weights
+- Inference APIs
+- User data
 
-### Prompt Injection
-- Direct injection
-- Indirect injection
-- Jailbreak attacks
+### 3. Threat Analysis
+```
+For each asset:
+- Who might attack?
+- What methods?
+- What impact?
+- Likelihood?
+```
 
-### Model Poisoning
-- Backdoor attacks
-- Data poisoning
-- Training compromise
+### 4. Mitigation Strategies
+- Technical controls
+- Monitoring
+- Response procedures
 
-## ✅ Mitigation
+## ✅ Checklist
 
-- Input validation
-- Output filtering
-- Model monitoring
-- Access controls
-- Regular audits
+- [ ] Document all AI components
+- [ ] Identify sensitive data flows
+- [ ] Map attack surfaces
+- [ ] Rate risks (likelihood × impact)
+- [ ] Define mitigations
+- [ ] Plan detection mechanisms
 
 ---
 
-**Next**: Learn LLM security.
+**Next**: Learn about [LLM Security](./llm-security.md).
 
