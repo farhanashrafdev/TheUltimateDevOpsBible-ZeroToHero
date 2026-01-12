@@ -1,57 +1,159 @@
 # Golden Paths
 
-## 🎯 What are Golden Paths?
+## 🎯 Introduction
 
-Golden paths are standardized, well-documented, and supported ways to accomplish common development tasks, reducing complexity and cognitive load.
+Golden Paths are the recommended, supported ways to accomplish common tasks within an organization. They provide standardized, well-tested approaches that reduce friction and increase consistency.
 
-## 📚 Characteristics
+## 📚 What are Golden Paths?
 
-### Well-Defined
-- Clear documentation
-- Standardized patterns
-- Best practices included
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Golden Paths                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Without Golden Paths:           With Golden Paths:                 │
+│                                                                      │
+│  Team A: Express + MySQL         All Teams:                         │
+│  Team B: Flask + PostgreSQL      ├── Service template with CI/CD   │
+│  Team C: FastAPI + MongoDB       ├── Standard observability        │
+│  Team D: Custom everything       ├── Security best practices       │
+│                                   ├── Kubernetes deployment        │
+│  = Inconsistency, tech debt      └── Documentation template        │
+│  = Hard to support                                                   │
+│  = Security gaps                 = Consistency, speed               │
+│                                   = Easy to support                  │
+│                                   = Security by default             │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-### Supported
-- Platform team support
-- Regular updates
-- Bug fixes
+## 🔧 Examples
 
-### Optimized
-- Performance tuned
-- Security hardened
-- Cost optimized
+### Service Creation Golden Path
 
-## 🛠️ Examples
+```yaml
+# Backstage Software Template
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: golden-service
+  title: Standard Microservice
+spec:
+  parameters:
+    - title: Service Details
+      properties:
+        name:
+          type: string
+        language:
+          type: string
+          enum: [go, python, nodejs]
+        team:
+          type: string
+          ui:field: OwnerPicker
+  
+  steps:
+    # Scaffold with standards
+    - id: template
+      action: fetch:template
+      input:
+        url: ./template-${{ parameters.language }}
+    
+    # Create repo with branch protection
+    - id: publish
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=org&repo=${{ parameters.name }}
+        branchProtectionEnabled: true
+    
+    # Setup CI/CD
+    - id: cicd
+      action: github:actions:dispatch
+      input:
+        workflow: setup-cicd.yml
+    
+    # Register in catalog
+    - id: register
+      action: catalog:register
+```
 
-### Application Deployment
-1. Create service from template
-2. Configure environment variables
-3. Deploy via CI/CD
-4. Monitor via platform dashboard
+### What's Included
 
-### Database Provisioning
-1. Request database via portal
-2. Configure connection string
-3. Use in application
-4. Automatic backups enabled
+```
+golden-service/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml           # Standard CI pipeline
+│       ├── cd.yml           # Standard CD pipeline
+│       └── security.yml     # Security scanning
+├── kubernetes/
+│   ├── deployment.yaml      # K8s manifests
+│   ├── service.yaml
+│   └── networkpolicy.yaml   # Security by default
+├── src/                     # Application code
+├── tests/                   # Test structure
+├── docs/                    # Documentation
+├── Dockerfile               # Optimized, secure
+├── catalog-info.yaml        # Backstage registration
+└── README.md                # Getting started guide
+```
 
-## ✅ Benefits
+### CI/CD Golden Path
 
-- Reduced complexity
-- Faster onboarding
-- Consistency
-- Security by default
-- Cost optimization
+```yaml
+# .github/workflows/ci.yml (included in template)
+name: CI Pipeline
 
-## 📝 Implementation
+on: [push, pull_request]
 
-- Document paths clearly
-- Provide templates
-- Enable self-service
-- Monitor usage
-- Iterate based on feedback
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test
+      - uses: codecov/codecov-action@v3
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+
+  build:
+    needs: [lint, test, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/org/${{ github.repository }}:${{ github.sha }}
+```
+
+## 📊 Measuring Adoption
+
+Track golden path usage:
+- % of new services using templates
+- Time to first deployment
+- Security scan pass rates
+- Developer satisfaction
+
+## ✅ Best Practices
+
+1. **Start Simple**: One golden path per use case
+2. **Make it Easy**: Easier than DIY alternatives
+3. **Keep Updated**: Regular maintenance and improvements
+4. **Get Feedback**: Iterate based on developer input
+5. **Don't Force**: Encourage, don't mandate
 
 ---
 
-**Next**: Learn about developer portals.
+**Next**: Learn about [Developer Portals](./developer-portals.md).
 
