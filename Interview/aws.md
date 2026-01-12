@@ -2,47 +2,173 @@
 
 ## 🎯 Core Services
 
-**Q: Explain EC2**
-A: Elastic Compute Cloud provides virtual servers. Features: instances, AMIs, security groups, EBS volumes, auto-scaling.
+**Q: Explain VPC and its components.**
 
-**Q: What is S3?**
-A: Simple Storage Service for object storage. Features: buckets, versioning, lifecycle policies, encryption, access controls.
+**A:**
+- **VPC**: Isolated virtual network
+- **Subnets**: IP ranges (public/private)
+- **Route Tables**: Traffic routing rules
+- **Internet Gateway**: Public internet access
+- **NAT Gateway**: Private subnet outbound access
+- **Security Groups**: Instance-level firewall (stateful)
+- **NACLs**: Subnet-level firewall (stateless)
 
-**Q: Explain VPC**
-A: Virtual Private Cloud provides isolated network. Components: subnets, route tables, internet gateway, NAT gateway, security groups.
+**Q: Difference between Security Groups and NACLs?**
 
-**Q: What is IAM?**
-A: Identity and Access Management controls access. Components: users, groups, roles, policies.
+| Feature | Security Group | NACL |
+|---------|---------------|------|
+| Level | Instance | Subnet |
+| State | Stateful | Stateless |
+| Rules | Allow only | Allow + Deny |
+| Default | Deny all inbound | Allow all |
 
-## 🔧 Advanced Topics
+**Q: Explain EC2 instance types.**
 
-**Q: Explain RDS**
-A: Relational Database Service provides managed databases. Features: Multi-AZ, read replicas, automated backups, encryption.
+**A:**
+- **General Purpose (T, M)**: Balanced compute/memory
+- **Compute Optimized (C)**: High CPU
+- **Memory Optimized (R, X)**: Large memory workloads
+- **Storage Optimized (I, D)**: High disk I/O
 
-**Q: What is Lambda?**
-A: Serverless compute service. Pay per request, automatic scaling, event-driven.
+**Q: What's the difference between EBS and Instance Store?**
 
-**Q: Explain CloudFormation**
-A: Infrastructure as Code for AWS. Templates define resources, stacks manage resources.
+| Feature | EBS | Instance Store |
+|---------|-----|----------------|
+| Persistence | Survives stop/terminate | Lost on stop |
+| Backup | Snapshots to S3 | Manual |
+| Size | Up to 16TB | Fixed |
+| Performance | Provisioned IOPS | Very high |
 
-## 📝 Scenario Questions
+## 📦 Storage & Databases
 
-**Q: Design a highly available application on AWS**
-A: Multi-AZ deployment, Application Load Balancer, Auto Scaling, RDS Multi-AZ, CloudFront CDN, Route 53 DNS.
+**Q: S3 storage classes and use cases?**
 
-**Q: How do you secure AWS resources?**
-A: IAM policies, security groups, VPC, encryption (at rest and in transit), CloudTrail, AWS Config, WAF.
+**A:**
+- **Standard**: Frequently accessed
+- **Standard-IA**: Infrequent access, quick retrieval
+- **One Zone-IA**: Non-critical infrequent data
+- **Glacier**: Archive (minutes to hours retrieval)
+- **Glacier Deep Archive**: Long-term archive (12+ hours)
 
-## ✅ Key Areas
+**Q: RDS vs DynamoDB?**
 
-- Compute (EC2, Lambda)
-- Storage (S3, EBS, EFS)
-- Networking (VPC, CloudFront)
-- Databases (RDS, DynamoDB)
-- Security (IAM, KMS)
-- Monitoring (CloudWatch)
+| Feature | RDS | DynamoDB |
+|---------|-----|----------|
+| Type | Relational | NoSQL |
+| Scaling | Vertical | Horizontal |
+| Schema | Fixed | Flexible |
+| Use Case | Complex queries | Key-value/document |
+
+**Q: Explain RDS Multi-AZ vs Read Replicas.**
+
+**A:**
+- **Multi-AZ**: High availability, automatic failover, same region
+- **Read Replicas**: Read scaling, can be cross-region, async replication
+
+## 🔐 Security & IAM
+
+**Q: Explain IAM roles vs users.**
+
+**A:**
+- **Users**: Long-term credentials for people
+- **Roles**: Temporary credentials for services/applications
+
+**Q: What is an IAM policy structure?**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::bucket/*",
+      "Condition": {
+        "IpAddress": {"aws:SourceIp": "10.0.0.0/8"}
+      }
+    }
+  ]
+}
+```
+
+**Q: How do you secure S3 buckets?**
+
+**A:**
+- Block public access (account/bucket level)
+- Bucket policies with least privilege
+- Enable encryption (SSE-S3, SSE-KMS)
+- Enable versioning and MFA delete
+- Enable access logging
+- Use VPC endpoints for private access
+
+## 🌐 Networking & Load Balancing
+
+**Q: Explain ALB vs NLB vs CLB.**
+
+| Feature | ALB | NLB | CLB |
+|---------|-----|-----|-----|
+| Layer | 7 (HTTP) | 4 (TCP/UDP) | 4+7 |
+| Routing | Path/host | Connection | Basic |
+| Performance | Good | Ultra-low latency | Legacy |
+
+**Q: How does Route 53 routing work?**
+
+**A:**
+- **Simple**: Single resource
+- **Weighted**: Percentage distribution
+- **Latency**: Lowest latency region
+- **Failover**: Primary/secondary
+- **Geolocation**: By user location
+
+## 🎯 Scenario Questions
+
+**Q: Design a highly available web application.**
+
+**A:**
+```
+┌─────────────────────────────────────────┐
+│ Route 53 (DNS)                          │
+└────────────────┬────────────────────────┘
+                 │
+         ┌───────┴───────┐
+         ▼               ▼
+    ┌─────────┐    ┌─────────┐
+    │  ALB    │    │  ALB    │
+    │ (AZ-a)  │    │ (AZ-b)  │
+    └────┬────┘    └────┬────┘
+         │               │
+    ┌────┴────┐    ┌────┴────┐
+    │ EC2 ASG │    │ EC2 ASG │
+    └────┬────┘    └────┬────┘
+         │               │
+         └───────┬───────┘
+                 ▼
+           ┌───────────┐
+           │ RDS       │
+           │ Multi-AZ  │
+           └───────────┘
+```
+
+**Q: How would you migrate an on-premises database to AWS?**
+
+**A:**
+1. Assess: AWS Database Migration Service (DMS)
+2. Schema conversion: AWS SCT
+3. Migrate: DMS with CDC for minimal downtime
+4. Validate: Compare source and target
+5. Cutover: Switch applications
+
+**Q: An EC2 instance can't reach the internet. Debug steps?**
+
+**A:**
+1. Check VPC/subnet configuration
+2. Verify route table has IGW route (0.0.0.0/0)
+3. Check security group outbound rules
+4. Check NACL rules
+5. Verify Elastic IP/public IP assigned
+6. Check instance status checks
 
 ---
 
-**Next**: Review DevSecOps interview questions.
+**Next**: Review [DevSecOps Interview](./devsecops.md) questions.
 
